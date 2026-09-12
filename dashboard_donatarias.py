@@ -221,6 +221,29 @@ with tab1:
 # ---------------------------------------------------------
 # TAB 2 — Indicadores 5, 6, 7, 8, 9 (grid 2x2 + fila completa)
 # ---------------------------------------------------------
+
+# --Variables previas--
+
+años = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+rfc_s = pd.read_csv('rfc_s.csv')
+rfc_s = rfc_s.to_numpy()
+
+#5
+fl_total_df = pd.read_excel('flota_laboral_total.xlsx')
+
+#6
+sp_df = pd.read_excel("Salario promedio.xlsx", index_col=0)
+
+#7
+dv_df = pd.read_excel('dependencia_voluntariado.xlsx', index_col=0)
+
+#8
+cog_df = pd.read_excel("costo_órgano_gubernamental.xlsx", index_col=0)
+
+#9
+cpb_df = pd.read_excel("costo por beneficiario.xlsx", index_col=0)
+
+
 with tab2:
     fila1_col1, fila1_col2 = st.columns(2)
     fila2_col1, fila2_col2 = st.columns(2)
@@ -228,18 +251,175 @@ with tab2:
     # --- Gráfico 5: Total de fuerza laboral ---
     with fila1_col1:
         st.info("Gráfico 5 — Total de fuerza laboral (pendiente)")
+        # Histograma por año (0 - 300)
+
+        año = años[5]
+        
+        fig = px.histogram(
+            fl_total_df, 
+            x=año, 
+            nbins=30,
+            title=f'Distribución de la fuerza laboral en el año {año}', 
+            text_auto=True, 
+            labels={'count':'Cantidad de asociaciones', 'year':'Fuerza laboral total'})
+        
+        fig.update_traces(xbins=dict(start=0, end=300, size=10))
+        
+        fig.update_xaxes(title_text = 'Fuerza laboral total')
+        fig.update_yaxes(title_text = 'Cantidad de asociaciones')
+        fig.show()
 
     # --- Gráfico 6: Costo por empleado ---
     with fila1_col2:
         st.info("Gráfico 6 — Costo por empleado (pendiente)")
 
+        año = años[5]
+    
+        fig = px.histogram(
+            sp_df,
+            x=año, 
+            title=f'Salario promedio por empleado en el año {año}',
+            text_auto=True)
+        
+        fig.update_xaxes(title_text='Salario promedio $MXN')
+        fig.update_yaxes(title_text='Cantidad de asociaciones')
+        
+        fig.update_traces(xbins=dict(start=0, end=500000, size=2000))
+        
+        fig.add_vrect(
+            x0=0, x1=50000,
+            annotation_text="Precario", annotation_position="top left",
+            fillcolor="red", opacity=0.25, line_width=0
+        )
+        
+        fig.add_vrect(
+            x0=50000, x1=150000,
+            annotation_text="Básico", annotation_position="top left",
+            fillcolor="red", opacity=0.15, line_width=0
+        )
+        
+        fig.add_vrect(
+            x0=150000, x1=300000,
+            annotation_text="Profesional", annotation_position="top left",
+            fillcolor="yellow", opacity=0.15, line_width=0
+        )
+        
+        fig.add_vrect(
+            x0=300000, x1=500000,
+            annotation_text="Consolidado", annotation_position="top left",
+            fillcolor="green", opacity=0.25, line_width=0
+        )
+        
+        fig.show()
+
     # --- Gráfico 7: Dependencia de voluntariado ---
     with fila2_col1:
         st.info("Gráfico 7 — Dependencia de voluntariado (pendiente)")
+        
+        año = años[5]
+
+        fig = px.histogram(
+            dv_df*100,
+            x=año,
+            log_y=True,
+            title='Histograma de dependencia del voluntariado'
+        )
+        
+        fig.add_vrect(
+            x0=0, x1=20,
+            annotation_text="Profesionalizada", annotation_position="top left",
+            fillcolor="green", opacity=0.15, line_width=0
+        )
+        
+        fig.add_vrect(
+            x0=20, x1=50,
+            annotation_text="Mixta", annotation_position="top left",
+            fillcolor="yellow", opacity=0.15, line_width=0
+        )
+        
+        fig.add_vrect(
+            x0=50, x1=80,
+            annotation_text="Dependiente", annotation_position="top left",
+            fillcolor="red", opacity=0.15, line_width=0
+        )
+        
+        fig.add_vrect(
+            x0=80, x1=100,
+            annotation_text="Casi exclusivamente voluntaria", annotation_position="top left",
+            fillcolor="red", opacity=0.25, line_width=0
+        )
+        
+        fig.update_traces(xbins=dict(start=0, end=100))
+        
+        fig.update_xaxes(title_text='Dependencia de voluntariado (%)')
+        fig.update_yaxes(title_text='Número de asociaciones')
+        
+        fig.show()
 
     # --- Gráfico 8: Costo del órgano de gobierno ---
     with fila2_col2:
         st.info("Gráfico 8 — Costo del órgano de gobierno (pendiente)")
+        
+        # Histograma por año
 
+        año = años[0]
+        
+        fig = px.histogram(
+            cog_df*100,
+            x=año,
+            title='Costo de órgano de gobierno (% del ingreso total)',
+            text_auto=True,
+            log_y=True
+        )
+        
+        fig.add_vrect(
+            x0=0, x1=5,
+            annotation_text="Bajo", annotation_position="top right",
+            fillcolor="green", opacity=0.15, line_width=0
+        )
+        
+        fig.add_vrect(
+            x0=5, x1=15,
+            annotation_text="Moderado", annotation_position="top right",
+            fillcolor="yellow", opacity=0.15, line_width=0
+        )
+        
+        fig.add_vrect(
+            x0=15, x1=30,
+            annotation_text="Alto", annotation_position="top right",
+            fillcolor="red", opacity=0.15, line_width=0
+        )
+        
+        fig.add_vrect(
+            x0=30, x1=100,
+            annotation_text="Muy alto", annotation_position="top right",
+            fillcolor="red", opacity=0.25, line_width=0
+        )
+        
+        fig.update_traces(xbins=dict(start=0, end=100, size=5))
+        
+        fig.update_yaxes(title_text='Número de asociaciones')
+        fig.update_xaxes(title_text='%')
+        fig.show()
+
+    
     # --- Gráfico 9: Costo por beneficiario (fila completa, ancho total) ---
     st.info("Gráfico 9 — Costo por beneficiario (pendiente, ancho completo)")
+    año = años[0]
+
+    
+    año = años[5]
+    
+    fig = px.histogram(
+        cpb_df[año],
+        log_y=True,
+        title=f'Historgrama de costo por beneficiario {año}',
+        text_auto=True
+    )
+    
+    fig.update_traces(xbins=dict(start=0, end=500000, size=5000))
+    
+    fig.update_xaxes(title_text='Costo por beneficiario $MXN (escala logarítmica)')
+    fig.update_yaxes(title_text='Número de asociaciones')
+    fig.update_layout(showlegend=False)
+    fig.show()
