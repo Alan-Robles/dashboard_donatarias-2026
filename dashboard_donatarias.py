@@ -1,8 +1,88 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import numpy as np
+import plotly.io as pio
+
+# =========================================================
+# IDENTIDAD VISUAL
+# =========================================================
+COLOR_GRIS_CLARO   = "#F2F2F2"
+COLOR_ROJO_PROFUNDO = "#8B2C1A"
+COLOR_ROJO_OXIDO    = "#B15E2E"
+COLOR_AZUL_PRUSIA   = "#003153"
+COLOR_GRIS_GRAFITO  = "#2C2C2C"
+COLOR_BLANCO        = "#FFFFFF"
+
+# Paleta categórica para usar en gráficos con varias categorías (orden = orden de uso)
+PALETA_CATEGORICA = [COLOR_AZUL_PRUSIA, COLOR_ROJO_PROFUNDO, COLOR_ROJO_OXIDO, COLOR_GRIS_GRAFITO, "#8FA9B8"]
+
+# Template de Plotly aplicado por default a TODAS las figuras
+pio.templates["marca_donatarias"] = pio.templates["plotly_white"]
+pio.templates["marca_donatarias"].layout.update(
+    font=dict(family="Roboto Mono, monospace", color=COLOR_GRIS_GRAFITO, size=13),
+    title_font=dict(family="Montserrat, sans-serif", color=COLOR_GRIS_GRAFITO, size=18),
+    paper_bgcolor=COLOR_BLANCO,
+    plot_bgcolor=COLOR_BLANCO,
+    colorway=PALETA_CATEGORICA,
+)
+pio.templates.default = "marca_donatarias"
 
 st.set_page_config(page_title="Dashboard Donatarias", layout="wide")
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Cormorant+Garamond:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Cormorant Garamond', serif;
+    color: #2C2C2C;
+}
+
+h1, h2, h3, h4 {
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 700 !important;
+    color: #2C2C2C !important;
+}
+
+.stApp {
+    background-color: #F2F2F2;
+}
+
+section[data-testid="stSidebar"] {
+    background-color: #003153;
+}
+section[data-testid="stSidebar"] * {
+    color: #F2F2F2 !important;
+    font-family: 'Montserrat', sans-serif !important;
+}
+
+div[data-testid="stMetric"] {
+    background-color: #FFFFFF;
+    border-left: 4px solid #8B2C1A;
+    padding: 12px 16px;
+    border-radius: 4px;
+}
+div[data-testid="stMetricValue"] {
+    font-family: 'Roboto Mono', monospace !important;
+    color: #8B2C1A !important;
+}
+div[data-testid="stMetricLabel"] {
+    font-family: 'Montserrat', sans-serif !important;
+    color: #2C2C2C !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    color: #2C2C2C;
+}
+.stTabs [aria-selected="true"] {
+    color: #8B2C1A !important;
+    border-bottom-color: #8B2C1A !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # =========================================================
 # CARGA DE DATOS
@@ -16,11 +96,17 @@ def cargar_datos():
     relacionados = pd.read_excel(f"{RUTA}/Ingresos relacionados.xlsx")
     no_relacionados = pd.read_excel(f"{RUTA}/Ingresos no relacionados.xlsx")
     gastos = pd.read_excel(f"{RUTA}/Gastos.xlsx")
-    return generales, donativos, relacionados, no_relacionados, gastos
+    identidad = pd.read_excel(f"{RUTA}/Identidad organizacional.xlsx")
+    fl_total_df = pd.read_excel(f"{RUTA}/flota_laboral_total.xlsx", index_col=0)
+    sp_df = pd.read_excel(f"{RUTA}/Salario promedio.xlsx", index_col=0)
+    dv_df = pd.read_excel(f"{RUTA}/dependencia_voluntariado.xlsx", index_col=0)
+    cog_df = pd.read_excel(f"{RUTA}/costo_órgano_gubernamental.xlsx", index_col=0)
+    cpb_df = pd.read_excel(f"{RUTA}/costo por beneficiario.xlsx", index_col=0)
+    return generales, donativos, relacionados, no_relacionados, gastos, identidad, fl_total_df, sp_df, dv_df, cog_df, cpb_df
 
-generales, donativos, relacionados, no_relacionados, gastos = cargar_datos()
+generales, donativos, relacionados, no_relacionados, gastos, identidad, fl_total_df, sp_df, dv_df, cog_df, cpb_df = cargar_datos()
 
-LLAVE = ["Año", "Folio"]  # ajustar 'ID' a la llave real
+LLAVE = ["Año", "Rfc"]  # ajustar 'ID' a la llave real
 
 # =========================================================
 # PREPARACIÓN DE INDICADORES BASE 
@@ -83,6 +169,12 @@ def asignar_quintil(df):
 total_ingresos = total_ingresos.groupby("Año", group_keys=False).apply(asignar_quintil)
 total_ingresos = total_ingresos[total_ingresos["Año"] != 2026]  # sin datos aún
 
+total_ingresos = total_ingresos.merge(
+    identidad[["Año", "Rfc", "Identidad organizacional", "Total Beneficiarios", "Costo por beneficiario"]],
+    on=["Año", "Rfc"], how="left"
+)
+total_ingresos["Identidad organizacional"] = total_ingresos["Identidad organizacional"].fillna("No clasificada")
+
 # =========================================================
 # SIDEBAR — FILTROS GLOBALES
 # =========================================================
@@ -97,8 +189,18 @@ quintiles_sel = st.sidebar.multiselect(
     default=["Q1", "Q2", "Q3", "Q4", "Q5"]
 )
 
+identidades_disponibles = sorted(total_ingresos["Identidad organizacional"].dropna().unique())
+identidad_sel = st.sidebar.multiselect(
+    "Identidad organizacional",
+    identidades_disponibles,
+    default=identidades_disponibles
+)
+
 df_anio = total_ingresos[total_ingresos["Año"] == anio_sel]
-df_filtrado = df_anio[df_anio["Quintil de ingresos"].isin(quintiles_sel)]
+df_filtrado = df_anio[
+    df_anio["Quintil de ingresos"].isin(quintiles_sel)
+    & df_anio["Identidad organizacional"].isin(identidad_sel)
+]
 
 # =========================================================
 # TÍTULO Y KPIs (Indicadores 2 y 3)
@@ -116,7 +218,7 @@ with col_kpi2:
     st.metric("Dependencia de donativos promedio (Indicador 3)", f"{dependencia_prom:.1%}")
 
 with col_kpi3:
-    n_orgs = df_filtrado["Folio"].nunique()
+    n_orgs = df_filtrado["Rfc"].nunique()
     st.metric("Organizaciones activas", f"{n_orgs:,}")
 
 # =========================================================
@@ -146,6 +248,10 @@ with tab1:
             path=["Quintil"],
             values="Monto total",
             color="Quintil",
+            color_discrete_map={
+                "Q1": COLOR_ROJO_PROFUNDO, "Q2": COLOR_ROJO_OXIDO,
+                "Q3": COLOR_AZUL_PRUSIA, "Q4": COLOR_GRIS_GRAFITO, "Q5": "#8FA9B8"
+            },
             title=f"1. Monto de ingresos por quintil ({anio_sel})"
         )
         fig1.update_traces(texttemplate="<b>%{label}</b><br>$%{value:,.0f}", textfont_size=14)
@@ -155,8 +261,8 @@ with tab1:
     with fila1_col2:
         # Traer el quintil de cada organización/año desde total_ingresos
         donativos_quintil = donativos.merge(
-            total_ingresos[["Año", "Folio", "Quintil de ingresos"]],
-            on=["Año", "Folio"],
+            total_ingresos[["Año", "Rfc", "Quintil de ingresos"]],
+            on=["Año", "Rfc"],
             how="left"
         )
 
@@ -205,19 +311,51 @@ with tab1:
             text="Número de organizaciones",
             color="Categoría",
             color_discrete_map={
-                "Déficit crítico": "#8B0000",
-                "Déficit significativo": "#D9534F",
-                "Déficit moderado": "#F0AD4E",
-                "Superávit moderado": "#5BC0DE",
-                "Superávit saludable": "#5CB85C"
+                "Déficit crítico": COLOR_ROJO_PROFUNDO,
+                "Déficit significativo": COLOR_ROJO_OXIDO,
+                "Déficit moderado": COLOR_GRIS_GRAFITO,
+                "Superávit moderado": "#5B8DA6",
+                "Superávit saludable": COLOR_AZUL_PRUSIA
             }
         )
         fig10.update_layout(showlegend=False, xaxis_title="", yaxis_title="Número de organizaciones")
         st.plotly_chart(fig10, use_container_width=True)
     # --- Gráfico 11: Identidad organizacional ---
     with fila2_col2:
-        st.info("Gráfico 11 — Identidad organizacional (pendiente)")
+        df_g11 = df_anio[df_anio["Identidad organizacional"].isin(identidad_sel)].copy()
+        df_g11 = df_g11[df_g11["Costo por beneficiario"] > 0]
 
+        # Tamaño pseudo-log: comprime la escala sin perder el orden relativo
+        df_g11["Tamaño (log)"] = np.log1p(df_g11["Total Beneficiarios"].clip(lower=0))
+
+        colores_identidad = {
+            "Salamandra": COLOR_ROJO_PROFUNDO,
+            "Axolote con rendimiento de Salamandra": COLOR_AZUL_PRUSIA,
+            "Axolote": COLOR_ROJO_OXIDO,
+            "Crisálida": COLOR_GRIS_GRAFITO,
+            "No clasificada": "#C9C9C9",
+        }
+
+        fig11 = px.scatter(
+            df_g11,
+            x="Total Ingresos Anio Fiscal",
+            y="Costo por beneficiario",
+            size="Tamaño (log)",
+            color="Identidad organizacional",
+            color_discrete_map=colores_identidad,
+            log_x=True,
+            log_y=True,
+            size_max=40,
+            opacity=0.75,
+            hover_data={"Total Beneficiarios": True, "Tamaño (log)": False},  # mostrar el valor real en hover
+            title=f"11. Identidad organizacional ({anio_sel})",
+            labels={
+                "Total Ingresos Anio Fiscal": "Total de ingresos (MXN, escala log)",
+                "Costo por beneficiario": "Costo por beneficiario (MXN, escala log)"
+            }
+        )
+        fig11.update_traces(marker=dict(line=dict(width=0)))  # sin borde en las burbujas
+        st.plotly_chart(fig11, use_container_width=True)
 # ---------------------------------------------------------
 # TAB 2 — Indicadores 5, 6, 7, 8, 9 (grid 2x2 + fila completa)
 # ---------------------------------------------------------
@@ -227,19 +365,98 @@ with tab2:
 
     # --- Gráfico 5: Total de fuerza laboral ---
     with fila1_col1:
-        st.info("Gráfico 5 — Total de fuerza laboral (pendiente)")
+        fig5 = px.histogram(
+            fl_total_df,
+            x=anio_sel,
+            nbins=30,
+            title=f"Distribución de la fuerza laboral en el año {anio_sel}",
+            text_auto=True,
+            labels={"count": "Cantidad de asociaciones", "year": "Fuerza laboral total"}
+        )
+        fig5.update_traces(xbins=dict(start=0, end=300, size=10))
+        fig5.update_xaxes(title_text="Fuerza laboral total")
+        fig5.update_yaxes(title_text="Cantidad de asociaciones")
+        st.plotly_chart(fig5, use_container_width=True)
 
     # --- Gráfico 6: Costo por empleado ---
     with fila1_col2:
-        st.info("Gráfico 6 — Costo por empleado (pendiente)")
+        fig6 = px.histogram(
+            sp_df,
+            x=anio_sel,
+            title=f"Salario promedio por empleado en el año {anio_sel}",
+            text_auto=True
+        )
+        fig6.update_xaxes(title_text="Salario promedio $MXN")
+        fig6.update_yaxes(title_text="Cantidad de asociaciones")
+        fig6.update_traces(xbins=dict(start=0, end=500000, size=2000))
+
+        fig6.add_vrect(x0=0, x1=50000, annotation_text="Precario", annotation_position="top left",
+                        fillcolor="red", opacity=0.25, line_width=0)
+        fig6.add_vrect(x0=50000, x1=150000, annotation_text="Básico", annotation_position="top left",
+                        fillcolor="red", opacity=0.15, line_width=0)
+        fig6.add_vrect(x0=150000, x1=300000, annotation_text="Profesional", annotation_position="top left",
+                        fillcolor="yellow", opacity=0.15, line_width=0)
+        fig6.add_vrect(x0=300000, x1=500000, annotation_text="Consolidado", annotation_position="top left",
+                        fillcolor="green", opacity=0.25, line_width=0)
+
+        st.plotly_chart(fig6, use_container_width=True)
 
     # --- Gráfico 7: Dependencia de voluntariado ---
     with fila2_col1:
-        st.info("Gráfico 7 — Dependencia de voluntariado (pendiente)")
+        fig7 = px.histogram(
+            dv_df * 100,
+            x=anio_sel,
+            log_y=True,
+            title="Histograma de dependencia del voluntariado"
+        )
+
+        fig7.add_vrect(x0=0, x1=20, annotation_text="Profesionalizada", annotation_position="top left",
+                        fillcolor="green", opacity=0.15, line_width=0)
+        fig7.add_vrect(x0=20, x1=50, annotation_text="Mixta", annotation_position="top left",
+                        fillcolor="yellow", opacity=0.15, line_width=0)
+        fig7.add_vrect(x0=50, x1=80, annotation_text="Dependiente", annotation_position="top left",
+                        fillcolor="red", opacity=0.15, line_width=0)
+        fig7.add_vrect(x0=80, x1=100, annotation_text="Casi exclusivamente voluntaria", annotation_position="top left",
+                        fillcolor="red", opacity=0.25, line_width=0)
+
+        fig7.update_traces(xbins=dict(start=0, end=100))
+        fig7.update_xaxes(title_text="Dependencia de voluntariado (%)")
+        fig7.update_yaxes(title_text="Número de asociaciones")
+        st.plotly_chart(fig7, use_container_width=True)
 
     # --- Gráfico 8: Costo del órgano de gobierno ---
     with fila2_col2:
-        st.info("Gráfico 8 — Costo del órgano de gobierno (pendiente)")
+        fig8 = px.histogram(
+            cog_df * 100,
+            x=anio_sel,
+            title="Costo de órgano de gobierno (% del ingreso total)",
+            text_auto=True,
+            log_y=True
+        )
+
+        fig8.add_vrect(x0=0, x1=5, annotation_text="Bajo", annotation_position="top right",
+                        fillcolor="green", opacity=0.15, line_width=0)
+        fig8.add_vrect(x0=5, x1=15, annotation_text="Moderado", annotation_position="top right",
+                        fillcolor="yellow", opacity=0.15, line_width=0)
+        fig8.add_vrect(x0=15, x1=30, annotation_text="Alto", annotation_position="top right",
+                        fillcolor="red", opacity=0.15, line_width=0)
+        fig8.add_vrect(x0=30, x1=100, annotation_text="Muy alto", annotation_position="top right",
+                        fillcolor="red", opacity=0.25, line_width=0)
+
+        fig8.update_traces(xbins=dict(start=0, end=100, size=5))
+        fig8.update_yaxes(title_text="Número de asociaciones")
+        fig8.update_xaxes(title_text="%")
+        st.plotly_chart(fig8, use_container_width=True)
 
     # --- Gráfico 9: Costo por beneficiario (fila completa, ancho total) ---
-    st.info("Gráfico 9 — Costo por beneficiario (pendiente, ancho completo)")
+    fig9 = px.histogram(
+        cpb_df[anio_sel],
+        log_y=True,
+        title=f"Histograma de costo por beneficiario {anio_sel}",
+        text_auto=True
+    )
+    fig9.update_traces(xbins=dict(start=0, end=500000, size=5000))
+    fig9.update_xaxes(title_text="Costo por beneficiario $MXN (escala logarítmica)")
+    fig9.update_yaxes(title_text="Número de asociaciones")
+    fig9.update_layout(showlegend=False)
+    st.plotly_chart(fig9, use_container_width=True)
