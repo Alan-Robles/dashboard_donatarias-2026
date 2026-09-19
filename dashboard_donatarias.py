@@ -455,6 +455,19 @@ with tab2:
         title=f"Histograma de costo por beneficiario {anio_sel}",
         text_auto=True
     )
+# ---------------------------------------------------------
+# TAB 3 -
+# ---------------------------------------------------------
+#1.Se busca donde se corre el programa
+directorio= Path(__file__).parent 
+#2.Se une con la ruta del archivo 
+rt_sankey= directorio/ "sankey.html"
+#3.Se crea una pestaña nueva
+with tab_3:
+    st.header("Flujo de donativo en México") #nombre
+    with open(rt_sankey, "r", encoding="utf-8") as f: #Se abre directamente el archivo para que sea modular
+        html_content = f.read()
+    components.html(html_content, height=750, scrolling=True)
     fig9.update_traces(xbins=dict(start=0, end=500000, size=5000))
     fig9.update_xaxes(title_text="Costo por beneficiario $MXN (escala logarítmica)")
     fig9.update_yaxes(title_text="Número de asociaciones")
