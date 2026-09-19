@@ -28,6 +28,86 @@ pio.templates["marca_donatarias"].layout.update(
 )
 pio.templates.default = "marca_donatarias"
 
+def estilizar_figura(fig, altura=390):
+    fig.update_layout(
+        height=altura,
+        paper_bgcolor=COLOR_BLANCO,
+        plot_bgcolor=COLOR_BLANCO,
+
+        font=dict(
+            family="Roboto Mono, monospace",
+            color=COLOR_GRIS_GRAFITO,
+            size=11
+        ),
+
+        title=dict(
+            font=dict(
+                family="Montserrat, sans-serif",
+                color=COLOR_GRIS_GRAFITO,
+                size=15
+            ),
+            x=0.01,
+            xanchor="left",
+            y=0.97,
+            yanchor="top"
+        ),
+
+        margin=dict(
+            l=50,
+            r=20,
+            t=45,
+            b=55
+        ),
+
+        legend=dict(
+            font=dict(
+                family="Montserrat, sans-serif",
+                color=COLOR_GRIS_GRAFITO,
+                size=10
+            )
+        ),
+
+        hoverlabel=dict(
+            font_family="Roboto Mono, monospace"
+        )
+    )
+
+    # ==============================
+    # EJE X
+    # ==============================
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor="#E5E5E5",
+        zeroline=False,
+        linecolor="#D0D0D0",
+        tickangle=0,
+        automargin=True,
+        tickfont=dict(
+            family="Montserrat, sans-serif",
+            size=11,
+            color=COLOR_GRIS_GRAFITO
+        )
+    )
+
+    # ==============================
+    # EJE Y
+    # ==============================
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor="#E5E5E5",
+        zeroline=False,
+        linecolor="#D0D0D0",
+        automargin=True,
+        tickangle=0,
+        tickfont=dict(
+            family="Roboto Mono, monospace",
+            size=10,
+            color=COLOR_GRIS_GRAFITO
+        )
+    )
+
+    return fig
+
 st.set_page_config(page_title="Dashboard Donatarias", layout="wide")
 
 st.markdown("""
@@ -67,10 +147,6 @@ div[data-testid="stMetricValue"] {
     font-family: 'Roboto Mono', monospace !important;
     color: #8B2C1A !important;
 }
-div[data-testid="stMetricLabel"] {
-    font-family: 'Montserrat', sans-serif !important;
-    color: #2C2C2C !important;
-}
 
 .stTabs [data-baseweb="tab"] {
     font-family: 'Montserrat', sans-serif;
@@ -81,6 +157,70 @@ div[data-testid="stMetricLabel"] {
     color: #8B2C1A !important;
     border-bottom-color: #8B2C1A !important;
 }
+
+/* =========================================
+   FILTROS MULTISELECT
+   ========================================= */
+
+section[data-testid="stSidebar"] [data-baseweb="tag"] {
+    background-color: #8B2C1A !important;
+    border-color: #8B2C1A !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="tag"] span {
+    color: #FFFFFF !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="tag"] svg {
+    color: #FFFFFF !important;
+    fill: #FFFFFF !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="tag"]:hover {
+    background-color: #8B2C1A !important;
+}
+            
+/* =========================================
+   ESPACIADO GENERAL
+   ========================================= */
+
+[data-testid="stAppViewContainer"] .main .block-container {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    padding-left: 1.2rem;
+    padding-right: 1.2rem;
+    max-width: 100%;
+}
+
+[data-testid="stVerticalBlock"] {
+    gap: 0.5rem;
+}
+            
+/* =========================================
+   MULTISELECT — TAGS SELECCIONADOS
+   ========================================= */
+
+.stMultiSelect [data-baseweb="tag"],
+.stMultiSelect [data-baseweb="tag"] > div {
+    background-color: #8B2C1A !important;
+    border-color: #8B2C1A !important;
+}
+
+.stMultiSelect [data-baseweb="tag"] span {
+    color: #FFFFFF !important;
+}
+
+.stMultiSelect [data-baseweb="tag"] svg {
+    fill: #FFFFFF !important;
+    color: #FFFFFF !important;
+}
+
+.stMultiSelect [data-baseweb="tag"]:hover,
+.stMultiSelect [data-baseweb="tag"]:focus {
+    background-color: #8B2C1A !important;
+    border-color: #8B2C1A !important;
+}
+            
 </style>
 """, unsafe_allow_html=True)
 
@@ -178,23 +318,43 @@ total_ingresos["Identidad organizacional"] = total_ingresos["Identidad organizac
 # =========================================================
 # SIDEBAR — FILTROS GLOBALES
 # =========================================================
+
+def filtro_multiselect(label, opciones, key):
+    if key not in st.session_state:
+        st.session_state[key] = list(opciones)
+
+    st.sidebar.markdown(f"**{label}**")
+
+    if st.sidebar.button(
+        "Seleccionar todos",
+        key=f"{key}_todos",
+        use_container_width=True
+    ):
+        st.session_state[key] = list(opciones)
+
+    return st.sidebar.multiselect(
+        " ",
+        opciones,
+        key=key,
+        label_visibility="collapsed"
+    )
+
+
 st.sidebar.header("Filtros")
 
 anios_disponibles = sorted(total_ingresos["Año"].unique())
-anio_sel = st.sidebar.selectbox("Año", anios_disponibles, index=len(anios_disponibles) - 1)
+anios_sel = filtro_multiselect("Año", anios_disponibles, key="anios_sel")
 
-quintiles_sel = st.sidebar.multiselect(
-    "Quintil de ingresos",
-    ["Q1", "Q2", "Q3", "Q4", "Q5"],
-    default=["Q1", "Q2", "Q3", "Q4", "Q5"]
-)
+quintiles_sel = filtro_multiselect("Quintil de ingresos", ["Q1", "Q2", "Q3", "Q4", "Q5"], key="quintiles_sel")
 
 identidades_disponibles = sorted(total_ingresos["Identidad organizacional"].dropna().unique())
-identidad_sel = st.sidebar.multiselect(
-    "Identidad organizacional",
-    identidades_disponibles,
-    default=identidades_disponibles
-)
+identidad_sel = filtro_multiselect("Identidad organizacional", identidades_disponibles, key="identidad_sel")
+
+if not anios_sel:
+    st.warning("Selecciona al menos un año en los filtros.")
+    st.stop()
+
+anio_sel = max(anios_sel)  # año usado en gráficas de "foto" (1, 10, 11, KPIs, Tab 2)
 
 df_anio = total_ingresos[total_ingresos["Año"] == anio_sel]
 df_filtrado = df_anio[
@@ -211,11 +371,11 @@ col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
 
 with col_kpi1:
     total_kpi = df_filtrado["Total Ingresos Anio Fiscal"].sum()
-    st.metric("Total de ingresos año fiscal (Indicador 2)", f"${total_kpi:,.0f} MXN")
+    st.metric("Total de ingresos año fiscal", f"${total_kpi/1_000_000:,.1f}M MXN")
 
 with col_kpi2:
     dependencia_prom = df_filtrado["Dependencia de donativos"].mean()
-    st.metric("Dependencia de donativos promedio (Indicador 3)", f"{dependencia_prom:.1%}")
+    st.metric("Dependencia de donativos promedio", f"{dependencia_prom:.1%}")
 
 with col_kpi3:
     n_orgs = df_filtrado["Rfc"].nunique()
@@ -252,9 +412,10 @@ with tab1:
                 "Q1": COLOR_ROJO_PROFUNDO, "Q2": COLOR_ROJO_OXIDO,
                 "Q3": COLOR_AZUL_PRUSIA, "Q4": COLOR_GRIS_GRAFITO, "Q5": "#8FA9B8"
             },
-            title=f"1. Monto de ingresos por quintil ({anio_sel})"
+            title=f"Monto de ingresos por quintil ({anio_sel})"
         )
         fig1.update_traces(texttemplate="<b>%{label}</b><br>$%{value:,.0f}", textfont_size=14)
+        fig1 = estilizar_figura(fig1, altura=390)
         st.plotly_chart(fig1, use_container_width=True)
 
     # --- Gráfico 4: Origen de donativo por identidad fiscal ---
@@ -287,9 +448,11 @@ with tab1:
             y="Monto donativo",
             color="Donante",
             markers=True,
-            title="4. Origen de donativo por identidad fiscal (monto por año)"
+            title="Origen de donativo por identidad fiscal (monto por año)"
         )
         fig4.update_layout(yaxis_title="Monto (MXN)", legend_title="Tipo de donante")
+        fig4 = estilizar_figura(fig4, altura=390)
+
         st.plotly_chart(fig4, use_container_width=True)
 
     # --- Gráfico 10: Sustentabilidad anual de flujo presupuestal (bubble chart) ---
@@ -307,7 +470,7 @@ with tab1:
 
         fig10 = px.bar(
             conteo_sust, x="Categoría", y="Número de organizaciones",
-            title=f"10. Sustentabilidad de flujo presupuestal ({anio_sel})",
+            title=f"Sustentabilidad de flujo presupuestal ({anio_sel})",
             text="Número de organizaciones",
             color="Categoría",
             color_discrete_map={
@@ -318,7 +481,30 @@ with tab1:
                 "Superávit saludable": COLOR_AZUL_PRUSIA
             }
         )
+
+        labels_sust_visual = [
+            "Déficit<br>crítico",
+            "Déficit<br>significativo",
+            "Déficit<br>moderado",
+            "Superávit<br>moderado",
+            "Superávit<br>saludable"
+        ]
+
         fig10.update_layout(showlegend=False, xaxis_title="", yaxis_title="Número de organizaciones")
+
+        fig10 = estilizar_figura(fig10, altura=390)
+    
+        fig10.update_xaxes(
+            tickangle=0,
+            automargin=True,
+            tickfont=dict(
+                family="Montserrat, sans-serif",
+                size=11,
+                color=COLOR_GRIS_GRAFITO
+            )
+        )
+
+
         st.plotly_chart(fig10, use_container_width=True)
     # --- Gráfico 11: Identidad organizacional ---
     with fila2_col2:
@@ -348,13 +534,15 @@ with tab1:
             size_max=40,
             opacity=0.75,
             hover_data={"Total Beneficiarios": True, "Tamaño (log)": False},  # mostrar el valor real en hover
-            title=f"11. Identidad organizacional ({anio_sel})",
+            title=f"Identidad organizacional ({anio_sel})",
             labels={
                 "Total Ingresos Anio Fiscal": "Total de ingresos (MXN, escala log)",
                 "Costo por beneficiario": "Costo por beneficiario (MXN, escala log)"
             }
         )
         fig11.update_traces(marker=dict(line=dict(width=0)))  # sin borde en las burbujas
+        fig11 = estilizar_figura(fig11, altura=390)
+
         st.plotly_chart(fig11, use_container_width=True)
 # ---------------------------------------------------------
 # TAB 2 — Indicadores 5, 6, 7, 8, 9 (grid 2x2 + fila completa)
@@ -376,7 +564,14 @@ with tab2:
         fig5.update_traces(xbins=dict(start=0, end=300, size=10))
         fig5.update_xaxes(title_text="Fuerza laboral total")
         fig5.update_yaxes(title_text="Cantidad de asociaciones")
-        st.plotly_chart(fig5, use_container_width=True)
+
+        fig5 = estilizar_figura(fig5, altura=390)
+
+        st.plotly_chart(
+            fig5,
+            use_container_width=True,
+            config={"displayModeBar": False}
+        )
 
     # --- Gráfico 6: Costo por empleado ---
     with fila1_col2:
@@ -398,6 +593,8 @@ with tab2:
                         fillcolor="yellow", opacity=0.15, line_width=0)
         fig6.add_vrect(x0=300000, x1=500000, annotation_text="Consolidado", annotation_position="top left",
                         fillcolor="green", opacity=0.25, line_width=0)
+
+        fig6 = estilizar_figura(fig6, altura=390)
 
         st.plotly_chart(fig6, use_container_width=True)
 
@@ -422,6 +619,8 @@ with tab2:
         fig7.update_traces(xbins=dict(start=0, end=100))
         fig7.update_xaxes(title_text="Dependencia de voluntariado (%)")
         fig7.update_yaxes(title_text="Número de asociaciones")
+        fig7 = estilizar_figura(fig7, altura=390)
+
         st.plotly_chart(fig7, use_container_width=True)
 
     # --- Gráfico 8: Costo del órgano de gobierno ---
@@ -446,6 +645,8 @@ with tab2:
         fig8.update_traces(xbins=dict(start=0, end=100, size=5))
         fig8.update_yaxes(title_text="Número de asociaciones")
         fig8.update_xaxes(title_text="%")
+        fig8 = estilizar_figura(fig8, altura=390)
+
         st.plotly_chart(fig8, use_container_width=True)
 
     # --- Gráfico 9: Costo por beneficiario (fila completa, ancho total) ---
@@ -459,4 +660,6 @@ with tab2:
     fig9.update_xaxes(title_text="Costo por beneficiario $MXN (escala logarítmica)")
     fig9.update_yaxes(title_text="Número de asociaciones")
     fig9.update_layout(showlegend=False)
+    fig9 = estilizar_figura(fig9, altura=390)
+
     st.plotly_chart(fig9, use_container_width=True)
