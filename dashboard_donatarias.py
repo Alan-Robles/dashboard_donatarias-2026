@@ -243,6 +243,7 @@ def cargar_datos():
     dv_df = pd.read_excel(f"{RUTA}/dependencia_voluntariado.xlsx", index_col=0)
     cog_df = pd.read_excel(f"{RUTA}/costo_órgano_gubernamental.xlsx", index_col=0)
     cpb_df = pd.read_excel(f"{RUTA}/costo por beneficiario.xlsx", index_col=0)
+
     return generales, donativos, relacionados, no_relacionados, gastos, identidad, fl_total_df, sp_df, dv_df, cog_df, cpb_df
 
 generales, donativos, relacionados, no_relacionados, gastos, identidad, fl_total_df, sp_df, dv_df, cog_df, cpb_df = cargar_datos()
@@ -673,5 +674,5 @@ with tab3:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
 
-    html_sankey = cargar_html("sankey.html")  # ajusta el path/nombre real de tu archivo
+    html_sankey = cargar_html(f"{RUTA}/sankey.html")  # ajusta el path/nombre real de tu archivo
     components.html(html_sankey, height=800, scrolling=True)
