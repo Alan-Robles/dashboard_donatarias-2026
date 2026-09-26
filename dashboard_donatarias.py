@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 import numpy as np
@@ -384,7 +385,7 @@ with col_kpi3:
 # =========================================================
 # TABS
 # =========================================================
-tab1, tab2 = st.tabs(["Estructura financiera", "Fuerza laboral y eficiencia"])
+tab1, tab2, tab3 = st.tabs(["Estructura financiera", "Fuerza laboral y eficiencia", "Sankey de movimiento de recursos"])
 
 # ---------------------------------------------------------
 # TAB 1 — Indicadores 1, 4, 10, 11 (grid 2x2)
@@ -663,3 +664,14 @@ with tab2:
     fig9 = estilizar_figura(fig9, altura=390)
 
     st.plotly_chart(fig9, use_container_width=True)
+
+with tab3:
+    st.subheader("")  # opcional, quítalo si no lo quieres
+
+    @st.cache_data
+    def cargar_html(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+
+    html_sankey = cargar_html("sankey.html")  # ajusta el path/nombre real de tu archivo
+    components.html(html_sankey, height=800, scrolling=True)
