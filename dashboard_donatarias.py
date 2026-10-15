@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 import plotly.io as pio
+import os
+import getpass
 
 # =========================================================
 # IDENTIDAD VISUAL
@@ -227,22 +229,65 @@ section[data-testid="stSidebar"] [data-baseweb="tag"]:hover {
 # =========================================================
 # CARGA DE DATOS
 # =========================================================
-RUTA = "/Users/alanrobles/Documents/ALAN/GEOSTATS/dontarias/dataet"
-
-@st.cache_data
-def cargar_datos():
-    generales = pd.read_excel(f"{RUTA}/Generales.xlsx")
-    donativos = pd.read_excel(f"{RUTA}/Ingreso por donativos.xlsx")
-    relacionados = pd.read_excel(f"{RUTA}/Ingresos relacionados.xlsx")
-    no_relacionados = pd.read_excel(f"{RUTA}/Ingresos no relacionados.xlsx")
-    gastos = pd.read_excel(f"{RUTA}/Gastos.xlsx")
-    identidad = pd.read_excel(f"{RUTA}/Identidad organizacional.xlsx")
-    fl_total_df = pd.read_excel(f"{RUTA}/flota_laboral_total.xlsx", index_col=0)
-    sp_df = pd.read_excel(f"{RUTA}/Salario promedio.xlsx", index_col=0)
-    dv_df = pd.read_excel(f"{RUTA}/dependencia_voluntariado.xlsx", index_col=0)
-    cog_df = pd.read_excel(f"{RUTA}/costo_órgano_gubernamental.xlsx", index_col=0)
-    cpb_df = pd.read_excel(f"{RUTA}/costo por beneficiario.xlsx", index_col=0)
-    return generales, donativos, relacionados, no_relacionados, gastos, identidad, fl_total_df, sp_df, dv_df, cog_df, cpb_df
+#TENEMOS DOS RUTAS PARA DOS PROGRAMADORES
+RUTA_ALAN = "/Users/alanrobles/Documents/ALAN/GEOSTATS/dontarias/dataet"
+#MIA PERSONAL DE ARCHIVOS
+RUTA_ALEX="C:\\Users\\Diego\\Downloads\\proyecto geostat\\dashboard_donatarias-2026\\files"
+usuario=getpass.getuser()
+if usuario=="Diego":
+    RUTA=RUTA_ALEX
+    @st.cache_data
+    def cargar_datos():
+        st.write("Leyendo generales...")
+        generales = pd.read_parquet(f"{RUTA}\\Generales.parquet")
+        st.write("Leyendo donativos...")
+        donativos = pd.read_parquet(f"{RUTA}\\Ingreso_por_donativos.parquet")
+        st.write("Leyendo ingresos relacionados...")
+        relacionados = pd.read_parquet(f"{RUTA}\\Ingresos_relacionados.parquet")
+        st.write("Leyendo ingresos no relacionados...")
+        no_relacionados = pd.read_parquet(f"{RUTA}\\Ingresos_no_relacionados.parquet")
+        st.write("Leyendo gastos...")
+        gastos = pd.read_parquet(f"{RUTA}\\Gastos.parquet")
+        st.write("Leyendo identidad organizacional...")
+        identidad = pd.read_parquet(f"{RUTA}\\Identidad_organizacional.parquet")
+        st.write("Leyendo flota laboral total...")
+        fl_total_df = pd.read_parquet(f"{RUTA}\\flota_laboral_total.parquet")
+        st.write("Leyendo salario promedio...")
+        sp_df = pd.read_parquet(f"{RUTA}\\Salario_promedio.parquet")
+        st.write("Leyendo dependencia de voluntariado...")
+        dv_df = pd.read_parquet(f"{RUTA}\\dependencia_voluntariado.parquet")
+        st.write("Leyendo costo de órgano gubernamental...")
+        cog_df = pd.read_parquet(f"{RUTA}\\costo_organo_gubernamental.parquet")
+        st.write("Leyendo costo por beneficiario...")
+        cpb_df = pd.read_parquet(f"{RUTA}\\costo_por_beneficiario.parquet")
+        return generales, donativos, relacionados, no_relacionados, gastos, identidad, fl_total_df, sp_df, dv_df, cog_df, cpb_df
+else:
+    RUTA=RUTA_ALAN
+    @st.cache_data
+    def cargar_datos():
+        st.write("Leyendo generales...")
+        generales = pd.read_excel(f"{RUTA}/Generales.xlsx")
+        st.write("Leyendo donativos...")
+        donativos = pd.read_excel(f"{RUTA}/Ingreso por donativos.xlsx")
+        st.write("Leyendo ingresos relacionados...")
+        relacionados = pd.read_excel(f"{RUTA}/Ingresos relacionados.xlsx")
+        st.write("Leyendo ingresos no relacionados...")
+        no_relacionados = pd.read_excel(f"{RUTA}/Ingresos no relacionados.xlsx")
+        st.write("Leyendo gastos...")
+        gastos = pd.read_excel(f"{RUTA}/Gastos.xlsx")
+        st.write("Leyendo identidad organizacional...")
+        identidad = pd.read_excel(f"{RUTA}/Identidad organizacional.xlsx")
+        st.write("Leyendo flota laboral total...")
+        fl_total_df = pd.read_excel(f"{RUTA}/flota_laboral_total.xlsx", index_col=0)
+        st.write("Leyendo salario promedio...")
+        sp_df = pd.read_excel(f"{RUTA}/Salario promedio.xlsx", index_col=0)
+        st.write("Leyendo dependencia de voluntariado...")
+        dv_df = pd.read_excel(f"{RUTA}/dependencia_voluntariado.xlsx", index_col=0)
+        st.write("Leyendo costo de órgano gubernamental...")
+        cog_df = pd.read_excel(f"{RUTA}/costo_órgano_gubernamental.xlsx", index_col=0)
+        st.write("Leyendo costo por beneficiario...")
+        cpb_df = pd.read_excel(f"{RUTA}/costo por beneficiario.xlsx", index_col=0)
+        return generales, donativos, relacionados, no_relacionados, gastos, identidad, fl_total_df, sp_df, dv_df, cog_df, cpb_df
 
 generales, donativos, relacionados, no_relacionados, gastos, identidad, fl_total_df, sp_df, dv_df, cog_df, cpb_df = cargar_datos()
 
@@ -296,17 +341,18 @@ total_ingresos["Sustentabilidad"] = (
     .replace([float("inf"), -float("inf")], 0)
     .fillna(0)
 )
+print(total_ingresos.columns)
 
-def asignar_quintil(df):
-    df = df.copy()
-    df["Quintil de ingresos"] = pd.qcut(
-        df["Total Ingresos Anio Fiscal"].rank(method="first", ascending=False),
+total_ingresos["Quintil de ingresos"] = total_ingresos.groupby("Año")["Total Ingresos Anio Fiscal"].transform(
+    lambda x: pd.qcut(
+        x.rank(method="first", ascending=False),
         5,
         labels=["Q1", "Q2", "Q3", "Q4", "Q5"]
     )
-    return df
-
-total_ingresos = total_ingresos.groupby("Año", group_keys=False).apply(asignar_quintil)
+)
+#limpiamos las columnas 
+total_ingresos.columns= total_ingresos.columns.str.strip()
+print(total_ingresos.columns)
 total_ingresos = total_ingresos[total_ingresos["Año"] != 2026]  # sin datos aún
 
 total_ingresos = total_ingresos.merge(
@@ -319,12 +365,10 @@ total_ingresos["Identidad organizacional"] = total_ingresos["Identidad organizac
 # SIDEBAR — FILTROS GLOBALES
 # =========================================================
 
-def filtro_multiselect(label, opciones, key):
-    if key not in st.session_state:
-        st.session_state[key] = list(opciones)
-
-    st.sidebar.markdown(f"**{label}**")
-
+def filtro_multiselect(label, opciones, key, default = None):
+    if key not in st.session_state or not st.session_state[key]:
+        st.session_state[key] = default if default is not None else list(opciones)
+    st.sidebar.write(f"**{label}**")
     if st.sidebar.button(
         "Seleccionar todos",
         key=f"{key}_todos",
@@ -338,30 +382,46 @@ def filtro_multiselect(label, opciones, key):
         key=key,
         label_visibility="collapsed"
     )
-
-
 st.sidebar.header("Filtros")
 
 anios_disponibles = sorted(total_ingresos["Año"].unique())
-anios_sel = filtro_multiselect("Año", anios_disponibles, key="anios_sel")
+anio_por_defcto=[max(anios_disponibles) if anios_disponibles else None]
+anio_sel = filtro_multiselect("Año", anios_disponibles, key="anio_sel", default=anio_por_defcto)
 
 quintiles_sel = filtro_multiselect("Quintil de ingresos", ["Q1", "Q2", "Q3", "Q4", "Q5"], key="quintiles_sel")
 
 identidades_disponibles = sorted(total_ingresos["Identidad organizacional"].dropna().unique())
 identidad_sel = filtro_multiselect("Identidad organizacional", identidades_disponibles, key="identidad_sel")
-
-if not anios_sel:
+#DETENEMOS STREAMLIT, PREVIO A CARACKEAR por falta de años
+if not anio_sel :
     st.warning("Selecciona al menos un año en los filtros.")
     st.stop()
+if not anios_disponibles :
+    st.warning("No hay años disponible")
+    st.stop()
 
-anio_sel = max(anios_sel)  # año usado en gráficas de "foto" (1, 10, 11, KPIs, Tab 2)
-
-df_anio = total_ingresos[total_ingresos["Año"] == anio_sel]
+df_anio = total_ingresos[total_ingresos["Año"].isin(anio_sel)]
 df_filtrado = df_anio[
     df_anio["Quintil de ingresos"].isin(quintiles_sel)
     & df_anio["Identidad organizacional"].isin(identidad_sel)
 ]
+#ANTES DE CREAR UNA GRAFICA
+#Creamos una funcion axualiar para convertir anio_sel de int64 a str en un dataframe adecudo
+def pre_metrics_anio_sel(df,anios,nombre_valor="Valor"):
+    colm_anio= {str(columna).strip(): columna for columna in df.columns}
+    anios_slc=[(str(anio).strip(),str(anio).strip() for anio in anios )]
 
+    #Validar que los años existan
+    col_falt==[anio for anio in anios_slc if anio not in colm_anio]
+    if col_falt:
+        raise KeyError(
+            f"No hay columnas para los años seleccionados:{col_falt}]"
+            f"en los datos de {nombre_valor}"
+                       )
+    #seleccionar columnas
+    datos= df[[colm_anio[anios] for anio, _ in anios_slc]].copy()
+    datos.columns=[anio for anio, _ in anios_slc]
+    return datos.melt(var_name= "Año", value_name=nombre_valor)
 # =========================================================
 # TÍTULO Y KPIs (Indicadores 2 y 3)
 # =========================================================
@@ -435,13 +495,16 @@ with tab1:
         donativos_quintil["Monto donativo"] = (
             donativos_quintil["Monto efectivo"] + donativos_quintil["Monto especie"]
         )
-
+        if donativos_quintil.empty:
+            st.warning("No hay datos para los filtros seleccionados en la gráfica de origen.")
+            st.stop()
         origen_por_anio = (
             donativos_quintil.groupby(["Año", "Donante"])["Monto donativo"]
             .sum()
             .reset_index()
         )
-
+        origen_por_anio["Año"]= pd.to_numeric(origen_por_anio["Año"])
+        origen_por_anio["Monto donativo"]= pd.to_numeric(origen_por_anio["Monto donativo"])
         fig4 = px.line(
             origen_por_anio,
             x="Año",
@@ -553,9 +616,10 @@ with tab2:
 
     # --- Gráfico 5: Total de fuerza laboral ---
     with fila1_col1:
+        datos_fl_total= pre_metrics_anio_sel(fl_total_df, anio_sel, nombre_valor="")
         fig5 = px.histogram(
             fl_total_df,
-            x=anio_sel,
+            x= "Fuerza Laboral total",
             nbins=30,
             title=f"Distribución de la fuerza laboral en el año {anio_sel}",
             text_auto=True,
@@ -575,9 +639,10 @@ with tab2:
 
     # --- Gráfico 6: Costo por empleado ---
     with fila1_col2:
+        sp_df= pre_metrics_anio_sel(sp_df, anio_sel, nombre_valor="Salario promedio $MXN")
         fig6 = px.histogram(
             sp_df,
-            x=anio_sel,
+            x="Salario promedio $MXN",
             title=f"Salario promedio por empleado en el año {anio_sel}",
             text_auto=True
         )
@@ -599,10 +664,11 @@ with tab2:
         st.plotly_chart(fig6, use_container_width=True)
 
     # --- Gráfico 7: Dependencia de voluntariado ---
+    dv_df= pre_metrics_anio_sel(dv_df, anio_sel, nombre_valor="Dependencia de voluntariado (%)")
     with fila2_col1:
         fig7 = px.histogram(
             dv_df * 100,
-            x=anio_sel,
+            x="Dependencia de voluntariado (%)",
             log_y=True,
             title="Histograma de dependencia del voluntariado"
         )
@@ -624,10 +690,11 @@ with tab2:
         st.plotly_chart(fig7, use_container_width=True)
 
     # --- Gráfico 8: Costo del órgano de gobierno ---
+    cog_df= pre_metrics_anio_sel(cog_df, anio_sel, nombre_valor="Costo de órgano de gobierno (% del ingreso total)")
     with fila2_col2:
         fig8 = px.histogram(
             cog_df * 100,
-            x=anio_sel,
+            x="Costo de órgano de gobierno (% del ingreso total)",
             title="Costo de órgano de gobierno (% del ingreso total)",
             text_auto=True,
             log_y=True
@@ -650,6 +717,7 @@ with tab2:
         st.plotly_chart(fig8, use_container_width=True)
 
     # --- Gráfico 9: Costo por beneficiario (fila completa, ancho total) ---
+    cpb_df= pre_metrics_anio_sel(cpb_df, anio_sel, nombre_valor="Costo por beneficiario $MXN")
     fig9 = px.histogram(
         cpb_df[anio_sel],
         log_y=True,
