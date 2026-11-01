@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flujo de Donativos — México</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Cormorant+Garamond:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg:#FFFFFF;--surface:#F2F2F2;--border:rgba(44,44,44,0.12);
+  --txt:#2C2C2C;--muted:#6b6b6b;
+  --blue:#003153;--green:#8B2C1A;--amber:#B15E2E;--grey:#2C2C2C;
+  --accent:#8B2C1A;
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Cormorant Garamond',serif;font-size:13px}
+
+/* KPIs */
+.kpis{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.kpi{flex:1;min-width:110px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px}
+.kpi-label{font-family:'Montserrat',sans-serif; font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px}
+.kpi-value{font-family:'Roboto Mono',monospace; font-size:22px;font-weight:700;color:var(--accent);line-height:1}
+.kpi-sub{font-size:9px;color:var(--muted);margin-top:2px}
+
+/* Filters */
+.filters-row{display:flex;gap:8px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);align-items:flex-end;flex-shrink:0;flex-wrap:wrap}
+.filter-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px}
+.filter-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:flex;align-items:center;gap:4px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+select{background:#FFFFFF;color:var(--txt);border:1px solid var(--border);border-radius:4px;padding:5px 24px 5px 8px;font-size:11px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%232C2C2C'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center;width:100%}
+select:focus{outline:none;border-color:var(--blue)}
+.btn-selall{color:var(--blue);border-color:rgba(0,49,83,.35);font-weight:600}
+.btn-selall:hover{background:rgba(0,49,83,.06)}
+.btn-reset{background:#FFFFFF;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:5px 12px;font-size:11px;cursor:pointer;align-self:flex-end;white-space:nowrap}
+
+/* Legend + controls */
+.legend{display:flex;gap:14px;padding:6px 16px;border-bottom:1px solid var(--border);align-items:center;flex-shrink:0;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.leg-ctrl{margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ctrl-group{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
+.ctrl-group strong{color:var(--accent);min-width:18px;text-align:right}
+input[type=range]{width:72px;accent-color:var(--amber);cursor:pointer}
+
+/* Scale toggle */
+.scale-toggle{display:flex;border:1px solid var(--border);border-radius:4px;overflow:hidden;font-size:10px}
+.scale-btn{
+  padding:4px 10px;cursor:pointer;background:transparent;color:var(--muted);
+  border:none;transition:all .15s;white-space:nowrap;
+}
+.scale-btn.active{background:var(--amber);color:#FFFFFF;font-weight:600}
+.scale-btn:not(.active):hover{color:var(--txt)}
+
+/* Scale badge */
+.scale-note{
+  font-size:9px;color:var(--amber);background:rgba(184,120,48,.12);
+  border:1px solid rgba(184,120,48,.3);border-radius:3px;
+  padding:2px 7px;white-space:nowrap;
+}
+
+/* Chart scroll */
+.chart-scroll{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+.chart-scroll::-webkit-scrollbar{width:5px}
+.chart-scroll::-webkit-scrollbar-thumb{background:rgba(44,44,44,.15);border-radius:3px}
+#chart{width:100%}
+
+/* Overflow tooltip */
+#ov-tooltip{
+  position:fixed;display:none;
+  background:#FFFFFF;border:1px solid rgba(44,44,44,.15);
+  border-radius:7px;padding:10px 14px;
+  width:300px;max-height:380px;overflow-y:auto;
+  z-index:9999;box-shadow:0 10px 40px rgba(0,0,0,.7);
+  pointer-events:none;
+}
+#ov-tooltip::-webkit-scrollbar{width:4px}
+#ov-tooltip::-webkit-scrollbar-thumb{background:rgba(44,44,44,.15);border-radius:2px}
+#ov-tooltip h4{font-family:'Montserrat',sans-serif; font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--amber);margin-bottom:7px}
+.ov-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11px}
+.ov-name{color:var(--txt)}.ov-monto{color:var(--amber);white-space:nowrap}
+
+/* Flow card (clic en un flujo → desglose; multiselección) */
+#flow-card{
+  position:fixed;display:none;z-index:10000;
+  width:min(640px, calc(100vw - 16px));max-height:calc(100vh - 16px);
+  flex-direction:column;
+  background:#FFFFFF;border:1px solid rgba(44,44,44,.18);border-radius:8px;
+  box-shadow:0 12px 36px rgba(0,0,0,.22);
+  font-family:'Montserrat',sans-serif;color:var(--txt);
+}
+#flow-card.open{display:flex}
+.fc-head{display:flex;align-items:flex-start;gap:8px;padding:10px 12px 6px;cursor:move;user-select:none;flex-shrink:0}
+.fc-title{flex:1;font-size:13px;font-weight:700;line-height:1.25}
+.fc-title small{display:block;font-weight:500;font-size:10px;color:var(--muted);margin-top:2px}
+.fc-close{border:none;background:transparent;font-size:16px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:4px}
+.fc-close:hover{background:var(--surface);color:var(--accent)}
+.fc-chips{display:flex;flex-wrap:wrap;gap:5px;padding:0 12px 8px;max-height:74px;overflow-y:auto;flex-shrink:0}
+.fc-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2px 4px 2px 3px;font-size:10px;max-width:100%}
+.fc-chip .n{background:var(--accent);color:#FFF;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.fc-chip .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.fc-chip .v{font-family:'Roboto Mono',monospace;color:var(--amber);white-space:nowrap}
+.fc-chip button{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:11px;padding:0 3px;border-radius:50%}
+.fc-chip button:hover{color:var(--accent)}
+.fc-kpis{display:flex;gap:6px;padding:0 12px 8px;flex-shrink:0}
+.fc-kpi{flex:1;background:var(--surface);border-radius:5px;padding:5px 8px;min-width:0}
+.fc-kpi .l{font-size:8px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.fc-kpi .v{font-family:'Roboto Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap}
+.fc-tabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.fc-tab{border:none;background:transparent;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:var(--muted);padding:6px 9px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.fc-tab:hover{color:var(--txt)}
+.fc-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.fc-table thead tr.grp th{top:0;height:22px;padding:4px 8px;text-align:left;border-bottom:none;font-size:9px;font-weight:700;letter-spacing:.05em;white-space:nowrap}
+.fc-table thead.has-grp tr.cols th{top:22px}
+.fc-table thead tr.cols th.c{max-width:130px;overflow:hidden;text-overflow:ellipsis}
+.fc-desc{padding:7px 12px;font-size:10.5px;line-height:1.4;color:var(--muted);background:#FBFAF8;border-bottom:1px solid var(--border);flex-shrink:0}
+.fc-desc b{color:var(--txt)}
+.fc-wrap{overflow:auto;min-height:60px;flex:1 1 auto;max-height:340px}
+.fc-wrap::-webkit-scrollbar{width:6px;height:6px}
+.fc-wrap::-webkit-scrollbar-thumb{background:rgba(44,44,44,.2);border-radius:3px}
+table.fc-table{border-collapse:separate;border-spacing:0;width:100%;font-size:11px}
+.fc-table th{position:sticky;top:0;z-index:2;background:#FFFFFF;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.fc-table th:first-child,.fc-table td:first-child{text-align:left;position:sticky;left:0;background:#FFFFFF;z-index:1}
+.fc-table th:first-child{z-index:3}
+.fc-table td{padding:4px 8px;border-bottom:1px solid rgba(44,44,44,.06);text-align:right;font-family:'Roboto Mono',monospace;white-space:nowrap}
+.fc-table td:first-child{font-family:'Montserrat',sans-serif;font-size:11px;white-space:normal;min-width:190px;max-width:260px}
+.fc-table tfoot td{position:sticky;bottom:0;background:var(--surface);font-weight:700;border-top:1px solid var(--border);z-index:2}
+.fc-table tfoot td:first-child{z-index:3}
+.fc-table td.pct{color:var(--muted)}
+.fc-table td.dim{color:#B5B5B5}
+/* Tabla larga: Donante | Monto | Recepción | Monto */
+.fc-table.long td.dn{font-weight:600}
+.fc-table.long td.dm{color:var(--accent);border-right:1px solid rgba(44,44,44,.10)}
+.fc-table.long td.rn{text-align:left;font-family:'Montserrat',sans-serif;white-space:normal;min-width:140px;max-width:240px}
+.fc-table.long td:first-child{min-width:160px;max-width:230px}
+.fc-table.long td.rn.unk{color:#9C9C9C;font-style:italic}
+.fc-table mark{background:rgba(177,94,46,.25);color:inherit;border-radius:2px;padding:0 1px}
+.fc-search{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.fc-search input{flex:1;min-width:0;font-family:'Montserrat',sans-serif;font-size:11px;color:var(--txt);background:#FFFFFF;border:1px solid var(--border);border-radius:4px;padding:5px 26px 5px 8px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.fc-search input::-webkit-search-cancel-button{display:none}
+.fc-search input:focus{outline:none;border-color:var(--blue)}
+.fc-search select{width:auto;font-family:'Montserrat',sans-serif;font-size:10px;padding:5px 22px 5px 6px}
+.fc-search .cnt{font-family:'Roboto Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap}
+.fc-search button{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 4px}
+.fc-search button:hover{color:var(--accent)}
+.fc-table.long th.l{text-align:left}
+.fc-empty{padding:18px 14px;color:var(--muted);font-size:11px;text-align:center}
+.fc-foot{padding:6px 12px 8px;font-size:9px;color:var(--muted);border-top:1px solid var(--border);flex-shrink:0;line-height:1.4}
+
+/* Footer */
+footer{padding:5px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;flex-shrink:0}
+footer span{font-size:9px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-label">Folios en Carátula</div><div class="kpi-value" id="kpi-total">—</div><div class="kpi-sub">registros únicos</div></div>
+  <div class="kpi"><div class="kpi-label">Con destino declarado</div><div class="kpi-value" id="kpi-con">—</div><div class="kpi-sub">flujo conocido</div></div>
+  <div class="kpi"><div class="kpi-label">Sin destino</div><div class="kpi-value" id="kpi-sin">—</div><div class="kpi-sub">nodo gris</div></div>
+  <div class="kpi"><div class="kpi-label">Monto conocido</div><div class="kpi-value" id="kpi-monto-con">—</div><div class="kpi-sub">origen→destino</div></div>
+  <div class="kpi"><div class="kpi-label">Monto sin destino</div><div class="kpi-value" id="kpi-monto-sin">—</div><div class="kpi-sub">sin declarar</div></div>
+</div>
+
+<div class="filters-row">
+  <div class="filter-group">
+    <div class="filter-label"><span class="dot" style="background:var(--blue)"></span>Estado emisor</div>
+    <select id="sel-origen" onchange="applyFilters()"><option value="">Todos los estados</option></select>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label"><span class="dot" style="background:var(--green)"></span>Estado receptor</div>
+    <select id="sel-destino" onchange="applyFilters()"><option value="">Todos los estados</option></select>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label"><span class="dot" style="background:var(--amber)"></span>Municipio</div>
+    <select id="sel-municipio" onchange="applyFilters()"><option value="">Todos los municipios</option></select>
+  </div>
+  <button class="btn-reset" onclick="resetFilters()">↺ Limpiar</button>
+  <button class="btn-reset btn-selall" id="btn-selall" onclick="selectAllVisible()"
+          title="Selecciona de una vez todos los flujos que se ven con los filtros actuales">☑ Seleccionar todos los flujos</button>
+</div>
+
+<div class="legend">
+  <div class="leg-item"><div class="dot" style="background:#003153"></div>Estado emisor</div>
+  <div class="leg-item"><div class="dot" style="background:#8B2C1A"></div>Estado receptor</div>
+  <div class="leg-item"><div class="dot" style="background:#B15E2E"></div>Municipio</div>
+  <div class="leg-item"><div class="dot" style="background:#2C2C2C"></div>Agrupados</div>
+  <div class="leg-item"><div class="dot" style="background:#9C9C9C"></div>Desconocido</div>
+  <div class="leg-ctrl">
+    <!-- Scale toggle -->
+    <div class="ctrl-group">
+      Escala:
+      <div class="scale-toggle">
+        <button class="scale-btn" id="btn-lin" onclick="setScale('linear')">Lineal</button>
+        <button class="scale-btn active" id="btn-log" onclick="setScale('log')">Log₁₀</button>
+      </div>
+      <span class="scale-note" id="scale-note">grosor ∝ log(monto)</span>
+    </div>
+    <!-- Limit slider -->
+    <div class="ctrl-group">
+      Límite munic.: <strong id="lim-val">15</strong>
+      <input type="range" id="lim-slider" min="3" max="50" value="15" step="1" oninput="onSlider(this.value)">
+    </div>
+    <!-- Row height -->
+    <div class="ctrl-group">
+      Altura fila: <strong id="px-val">26</strong>px
+      <input type="range" id="px-slider" min="10" max="56" value="26" step="2" oninput="onPxSlider(this.value)">
+    </div>
+  </div>
+</div>
+
+<div class="chart-scroll" id="chart-scroll">
+  <div id="chart"></div>
+</div>
+
+<div id="ov-tooltip">
+  <h4 id="ov-title"></h4>
+  <div id="ov-list"></div>
+</div>
+
+<div id="flow-card" role="dialog" aria-label="Desglose de flujos">
+  <div class="fc-head" id="fc-head">
+    <div class="fc-title" id="fc-title"></div>
+    <button class="fc-close" id="fc-close" title="Cerrar y limpiar selección">✕</button>
+  </div>
+  <div class="fc-chips" id="fc-chips"></div>
+  <div class="fc-kpis" id="fc-kpis"></div>
+  <div class="fc-tabs" id="fc-tabs"></div>
+  <div class="fc-desc" id="fc-desc"></div>
+  <div class="fc-search" id="fc-search">
+    <input type="search" id="fc-q" placeholder="Buscar donante o receptor…" autocomplete="off">
+    <select id="fc-qside" title="Dónde buscar">
+      <option value="both">En ambos</option>
+      <option value="don">Solo donante</option>
+      <option value="rec">Solo receptor</option>
+    </select>
+    <span class="cnt" id="fc-qcnt"></span>
+    <button id="fc-qclear" title="Limpiar búsqueda">✕</button>
+  </div>
+  <div class="fc-wrap"><table class="fc-table" id="fc-table"></table></div>
+  <div class="fc-foot" id="fc-foot"></div>
+</div>
+
+<footer>
+  <span>Fuente: Informe de Transparencia · SAT · Monto en MXN</span>
+  <span>Clic en un flujo → desglose · clic en varios para compararlos (clic otra vez lo quita) · Hover sobre "+N más…" para detalle de municipios agrupados</span>
+</footer>
+
+<script>
+const RAW   = /*__RAW__*/null;
+const STATS = RAW.stats;
+const ALL_L1   = RAW.link1;
+const ALL_L2   = RAW.link2;
+const ALL_DESC = RAW.desc_por_origen;
+const DET      = RAW.det;   // tablas de detalle (diccionarios + filas) para el desglose por flujo
+
+// =========================================================
+// CONSTANTES DE CONFIGURACIÓN (antes "números mágicos")
+// =========================================================
+const COLOR_AZUL_PRUSIA   = '#003153';
+const COLOR_ROJO_PROFUNDO = '#8B2C1A';
+const COLOR_ROJO_OXIDO    = '#B15E2E';
+const COLOR_GRIS_GRAFITO  = '#2C2C2C';
+const COLOR_DESCONOCIDO   = '#9C9C9C';
+
+const OPACITY_LINK_ESTADO      = 0.22;
+const OPACITY_LINK_MUNICIPIO   = 0.22;
+const OPACITY_LINK_OVERFLOW    = 0.18;
+const OPACITY_LINK_DESCONOCIDO = 0.28;
+
+const MIN_CHART_HEIGHT = 500;  // alto mínimo del gráfico, px
+const CHART_HEIGHT_PAD = 80;   // margen extra sumado al alto calculado, px
+const NODE_PAD         = 4;
+const NODE_THICKNESS   = 16;
+
+const COL_X_ORIGEN    = 0.001; // posición horizontal columna "estado emisor"
+const COL_X_DESTINO   = 0.5;   // posición horizontal columna "estado receptor"
+const COL_X_MUNICIPIO = 0.999; // posición horizontal columna "municipio"
+
+const Y_MARGIN_PX = 14;   // margen superior/inferior fijo en píxeles (no escala con el alto del gráfico)
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+let ovMap       = {};
+let LINK_FLOWS  = [];          // flujos dibujados (mismo orden que los links de Plotly)
+let LINK_ST     = {src:[], tgt:[]};   // nodo origen / destino de cada link (para seleccionar por nodo)
+const SELECTED  = new Map();   // key → flujo seleccionado (multiselección)
+let ACTIVE_TAB  = 'rs';
+let MUN_LIMIT   = 15;   // # de municipios visibles por estado antes de agrupar en "+N más…"
+let PX_PER_NODE = 26;   // alto estimado por nodo, usado para calcular el alto del gráfico
+let SCALE_MODE  = 'log';   // 'linear' | 'log'
+
+// ── Transformación de escala ──────────────────────────────────────────────────
+// log10(v + 1) para que v=0 → 0 y los montos pequeños no sean invisibles.
+// FLOOR_VIS asegura que hasta los flujos más chicos se vean como línea delgada.
+const LOG_BASE  = 10;
+const FLOOR_VIS = 0.5;
+
+function scaleVal(v) {
+  if (SCALE_MODE === 'linear') return Math.max(v, FLOOR_VIS);  // antes: podía devolver 0 y el link se volvía invisible
+  if (v <= 0) return FLOOR_VIS;
+  const s = Math.log(v + 1) / Math.log(LOG_BASE);
+  return Math.max(s, FLOOR_VIS);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmt(v){
+  if(v>=1e9) return '$'+(v/1e9).toFixed(2)+'B';
+  if(v>=1e6) return '$'+(v/1e6).toFixed(1)+'M';
+  if(v>=1e3) return '$'+Math.round(v/1e3)+'K';
+  return '$'+Math.round(v);
+}
+function fmtN(v){ return v.toLocaleString('es-MX'); }
+
+// ── Selects ───────────────────────────────────────────────────────────────────
+function populateSelects(curO,curD,curM){
+  const allO=[...new Set(ALL_L1.map(r=>r.origen))].sort();
+  const allD=[...new Set(ALL_L1.map(r=>r.destino))].sort();
+  const allM=[...new Set(ALL_L2.map(r=>r.municipio))].sort();
+  function fill(id,arr,cur){
+    const el=document.getElementById(id);
+    const first=el.options[0];
+    el.innerHTML=''; el.appendChild(first);
+    arr.forEach(v=>{const o=new Option(v,v);if(v===cur)o.selected=true;el.appendChild(o);});
+  }
+  fill('sel-origen',allO,curO);
+  fill('sel-destino',allD,curD);
+  fill('sel-municipio',allM,curM);
+}
+
+// ── Build Sankey ──────────────────────────────────────────────────────────────
+function buildSankey(filtO,filtD,filtM){
+  ovMap={};
+
+  // Filter
+  let l1=ALL_L1.filter(r=>(!filtO||r.origen===filtO)&&(!filtD||r.destino===filtD));
+  let l2base=ALL_L2.filter(r=>(!filtD||r.destino===filtD)&&(!filtM||r.municipio===filtM));
+  if(filtM){
+    const destsWithMun=new Set(l2base.map(r=>r.destino));
+    l1=l1.filter(r=>destsWithMun.has(r.destino));
+  }
+  const activeDestinos=[...new Set([...l1.map(r=>r.destino),...l2base.map(r=>r.destino)])];
+
+  // Apply municipality limit
+  const l2visible=[], l2overflow=[];
+  activeDestinos.forEach(dest=>{
+    const rows=l2base.filter(r=>r.destino===dest).sort((a,b)=>b.Monto-a.Monto);
+    if(filtM){
+      rows.forEach(r=>l2visible.push(r));
+    } else if(rows.length<=MUN_LIMIT){
+      rows.forEach(r=>l2visible.push(r));
+    } else {
+      rows.slice(0,MUN_LIMIT).forEach(r=>l2visible.push(r));
+      const overflow=rows.slice(MUN_LIMIT);
+      const ovKey=dest+':::overflow';
+      ovMap[ovKey]={dest, rows:overflow};
+      l2overflow.push({destino:dest, municipio:ovKey, Monto:overflow.reduce((s,r)=>s+r.Monto,0)});
+    }
+  });
+  const l2=[...l2visible,...l2overflow];
+
+  // Node lists
+  const origNodes=[...new Set(l1.map(r=>r.origen))].sort();
+  const destNodes=[...new Set([...l1.map(r=>r.destino),...l2.map(r=>r.destino)])].sort();
+  const visMuns=[...new Set(l2visible.map(r=>r.municipio))].sort();
+  const ovKeys=[...new Set(l2overflow.map(r=>r.municipio))];
+  const munNodes=[...visMuns,...ovKeys];
+
+  const nO=origNodes.length, nD=destNodes.length, nM=munNodes.length;
+  const idxUnk=nO+nD+nM;
+
+  // Dynamic height
+  const maxCol=Math.max(nO, nD, nM+1);
+  const chartH = Math.max(MIN_CHART_HEIGHT, maxCol * PX_PER_NODE + CHART_HEIGHT_PAD);  document.getElementById('chart').style.height=chartH+'px';
+
+  // Labels (nbsp suffix prevents Plotly dedup across columns)
+  // DESPUÉS — tres sufijos Unicode distintos, uno por columna:
+  const SFX_O='\u200B';    // zero-width space  → emisores
+  const SFX_D='\u200C';    // zero-width non-joiner → receptores  
+  const SFX_M='\u200D';    // zero-width joiner → municipios
+  const SFX_M2='\u2060';   // word joiner → municipios agrupados
+
+  function munLabel(k){
+    if(ovMap[k]){const{dest,rows}=ovMap[k];return '+'+rows.length+' más… ('+dest+')'+SFX_M2;}
+    return k+SFX_M;
+  }
+  const allLabels=[
+    ...origNodes.map(n=>n+SFX_O),     // ← sufijo único para emisores
+    ...destNodes.map(n=>n+SFX_D),
+    ...munNodes.map(k=>munLabel(k)),
+    'Destino\u200C\u200BDesconocido'
+  ];
+
+  // Real montos (for hover labels)
+  const realValues=[];
+  // Index helpers — devuelven -1 si el nodo no existe, para que los filtros
+  // "if (iX(...) < 0) return;" de abajo funcionen de verdad.
+  // (ANTES: el offset +nO/+nD se sumaba antes de revisar el -1, así que un
+  // nodo faltante nunca se detectaba y el link se dibujaba apuntando mal)
+  const iO = n => origNodes.indexOf(n);
+  const iD = n => { const i = destNodes.indexOf(n); return i < 0 ? -1 : nO + i; };
+  const iM = k => { const i = munNodes.indexOf(k); return i < 0 ? -1 : nO + nD + i; };
+
+  const sources=[],targets=[],scaledValues=[];
+  // Un "flujo" por cada link dibujado (mismo orden que sources/targets):
+  // guarda qué es (para el clic/desglose) y su color base (para resaltar selección).
+  const flows=[];
+
+  l1.forEach(r=>{
+    if(iO(r.origen)<0||iD(r.destino)<0)return;
+    sources.push(iO(r.origen)); targets.push(iD(r.destino));
+    scaledValues.push(scaleVal(r.Monto)); realValues.push(r.Monto);
+    flows.push({type:'L1', key:'L1|'+r.origen+'|'+r.destino, o:r.origen, d:r.destino,
+                label:r.origen+' → '+r.destino, monto:r.Monto,
+                base:{hex:COLOR_AZUL_PRUSIA, a:OPACITY_LINK_ESTADO}});
+  });
+  l2.forEach(r=>{
+    if(iD(r.destino)<0||iM(r.municipio)<0)return;
+    const ov=ovMap[r.municipio];
+    sources.push(iD(r.destino)); targets.push(iM(r.municipio));
+    scaledValues.push(scaleVal(r.Monto)); realValues.push(r.Monto);
+    if(ov){
+      flows.push({type:'OV', key:'OV|'+r.destino, d:r.destino, munis:ov.rows.map(x=>x.municipio),
+                  label:r.destino+' → '+ov.rows.length+' municipios más', monto:r.Monto,
+                  base:{hex:COLOR_GRIS_GRAFITO, a:OPACITY_LINK_OVERFLOW}});
+    } else {
+      flows.push({type:'L2', key:'L2|'+r.destino+'|'+r.municipio, d:r.destino, m:r.municipio,
+                  label:r.destino+' → '+r.municipio, monto:r.Monto,
+                  base:{hex:COLOR_ROJO_OXIDO, a:OPACITY_LINK_MUNICIPIO}});
+    }
+  });
+  const descByOrigen={};
+  ALL_DESC.forEach(r=>{descByOrigen[r.origen]=r.monto_desc;});
+  origNodes.forEach(orig=>{
+    const m=descByOrigen[orig]||0;
+    if(m>0){
+      sources.push(iO(orig)); targets.push(idxUnk);
+      scaledValues.push(scaleVal(m)); realValues.push(m);
+      flows.push({type:'UNK', key:'UNK|'+orig, o:orig, label:orig+' → Destino desconocido', monto:m,
+                  base:{hex:COLOR_DESCONOCIDO, a:OPACITY_LINK_DESCONOCIDO}});
+    }
+  });
+
+  // La selección sobrevive a los filtros: se re-enlaza con los flujos que siguen existiendo.
+  LINK_FLOWS = flows;
+  LINK_ST = {src:sources, tgt:targets};
+  reconcileSelection();
+  const colors = linkColors();
+
+  // Custom hover using realValues (shows actual MXN, not scaled)
+  const linkHover=realValues.map((v,i)=>
+    allLabels[sources[i]].trim()+' → '+allLabels[targets[i]].trim()+'<br><b>'+fmt(v)+'</b> MXN real'
+    +'<br><span style="color:#9a9a9a">clic para ver desglose</span><extra></extra>'
+  );
+
+  // Node real totals for hover
+  const nodeTotal=new Array(allLabels.length).fill(0);
+  realValues.forEach((v,i)=>{
+    nodeTotal[targets[i]]=(nodeTotal[targets[i]]||0)+v;
+    nodeTotal[sources[i]]=(nodeTotal[sources[i]]||0)+v;
+  });
+  const nodeHover=allLabels.map((lbl,i)=>{
+    const clean=lbl.replace(/[\u200B\u200C\u200D\u2060]/g,'').trim();
+    return '<b>'+clean+'</b><br>'+fmt(nodeTotal[i])+' MXN'
+      +'<br><span style="font-size:9px;color:#6B6B6B">Clic: seleccionar todos sus flujos</span><extra></extra>';
+  });
+  // Node colors
+  const nodeColors = [
+    ...origNodes.map(() => COLOR_AZUL_PRUSIA),
+    ...destNodes.map(() => COLOR_ROJO_PROFUNDO),
+    ...munNodes.map(k => ovMap[k] ? COLOR_GRIS_GRAFITO : COLOR_ROJO_OXIDO),
+    COLOR_DESCONOCIDO
+  ];
+
+  // KPIs
+  const montoConocido=l1.reduce((s,r)=>s+r.Monto,0);
+  const montoDesc=origNodes.reduce((s,o)=>s+(descByOrigen[o]||0),0);
+  document.getElementById('kpi-total').textContent    =fmtN(STATS.total_folios);
+  document.getElementById('kpi-con').textContent      =fmtN(STATS.coinciden);
+  document.getElementById('kpi-sin').textContent      =fmtN(STATS.solo_caratula);
+  document.getElementById('kpi-monto-con').textContent=fmt(montoConocido);
+  document.getElementById('kpi-monto-sin').textContent=fmt(montoDesc);
+
+  populateSelects(filtO,filtD,filtM);
+
+  // ── Coordenadas X/Y explícitas para forzar columnas ──────────────────────
+ 
+ // ── Coordenadas X/Y explícitas para forzar columnas ──────────────────────
+ const nodeWeight = new Array(allLabels.length).fill(0);
+  scaledValues.forEach((v, i) => {
+    nodeWeight[sources[i]] += v;
+    nodeWeight[targets[i]] += v;
+  });
+
+  function spreadYByWeight(indices, chartHeight) {
+    if (indices.length === 0) return {};
+    if (indices.length === 1) return { [indices[0]]: 0.5 };
+    const marginFrac = Y_MARGIN_PX / chartHeight;
+    const usableRange = 1 - 2 * marginFrac;
+    const weights = indices.map(i => nodeWeight[i] || 1);
+    const total = weights.reduce((a, b) => a + b, 0);
+    const result = {};
+    let cum = 0;
+    indices.forEach((idx, j) => {
+      result[idx] = marginFrac + (cum + weights[j] / 2) / total * usableRange;
+      cum += weights[j];
+    });
+    return result;
+  }
+
+  const idxO = origNodes.map((_, i) => i);
+  const idxD = destNodes.map((_, i) => nO + i);
+  const idxM = munNodes.map((_, i) => nO + nD + i);
+
+  const yMap = {
+    ...spreadYByWeight(idxO, chartH),
+    ...spreadYByWeight(idxD, chartH),
+    ...spreadYByWeight([...idxM, idxUnk], chartH),
+  };
+
+  const nodeX = [
+    ...origNodes.map(() => COL_X_ORIGEN),
+    ...destNodes.map(() => COL_X_DESTINO),
+    ...munNodes.map(() => COL_X_MUNICIPIO),
+    COL_X_MUNICIPIO
+  ];
+  const nodeY = allLabels.map((_, i) => yMap[i] ?? 0.5);
+
+  const trace = {
+    type: 'sankey', orientation: 'h', arrangement: 'fixed',
+    node: {
+      pad: NODE_PAD, thickness: NODE_THICKNESS,
+      line: { color: 'rgba(0,0,0,0)', width: 0 },
+      label: allLabels, color: nodeColors,
+      x: nodeX,
+      y: nodeY,
+      customdata: nodeHover,
+      hovertemplate: '%{customdata}<extra></extra>',
+    },
+    link: {
+      source: sources, target: targets, value: scaledValues, color: colors,
+      customdata: linkHover,
+      hovertemplate: '%{customdata}',
+    }
+  };
+
+  const layout = {
+    height: chartH,
+    font: { family: 'Roboto Mono, monospace', size: 10, color: COLOR_GRIS_GRAFITO },
+    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+    margin: { t: 8, b: 8, l: 6, r: 6 },
+    hoverlabel: {
+      bgcolor: '#FFFFFF', bordercolor: 'rgba(44,44,44,.15)',
+      font: { family: 'Roboto Mono, monospace', size: 11, color: COLOR_GRIS_GRAFITO }
+    }
+  };
+
+  Plotly.react('chart', [trace], layout, {
+    responsive: true, displaylogo: false,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    toImageButtonOptions: { format: 'png', filename: 'sankey_donativos', scale: 2 }
+  });
+
+  attachOverflowHover(allLabels);
+  attachFlowClick();
+  renderCard();   // refresca (o cierra) la tarjeta con los flujos que sobrevivieron al filtro
+}
+
+// ── Overflow tooltip ──────────────────────────────────────────────────────────
+// ¿El punto de un evento de Plotly es un NODO? (en un link, pointNumber es el índice del link)
+function isNodePoint(pt){ return pt && (pt.sourceLinks!==undefined || pt.targetLinks!==undefined); }
+
+function attachOverflowHover(allLabels){
+  const tip=document.getElementById('ov-tooltip');
+  const tipTtl=document.getElementById('ov-title');
+  const tipLst=document.getElementById('ov-list');
+  const gd=document.getElementById('chart');
+  // Plotly.react conserva el div: sin esto los handlers se duplican en cada filtro.
+  gd.removeAllListeners('plotly_hover');
+  gd.removeAllListeners('plotly_unhover');
+
+  gd.on('plotly_hover',function(data){
+    if(!data.points||!data.points.length){tip.style.display='none';return;}
+    const pt=data.points[0];
+    if(!isNodePoint(pt)){tip.style.display='none';return;}   // antes: un link con índice i leía la etiqueta del nodo i
+    const nodeIdx=pt.pointNumber;
+    if(nodeIdx===undefined){tip.style.display='none';return;}
+    const label=allLabels[nodeIdx];
+    if(!label){tip.style.display='none';return;}
+
+    let matchedKey=null;
+    for(const[k,v] of Object.entries(ovMap)){
+      const cleanLabel = label.replace(/[\u200B\u200C\u200D\u2060]/g, '');
+      const cleanKey   = ('+'+v.rows.length+' más… ('+v.dest+')');
+      if(cleanLabel === cleanKey){matchedKey=k;break;}    }
+    if(!matchedKey){tip.style.display='none';return;}
+
+    const ov=ovMap[matchedKey];
+    tipTtl.textContent=ov.dest+' — '+ov.rows.length+' municipios adicionales';
+    tipLst.innerHTML=ov.rows.map(r=>
+      '<div class="ov-row"><span class="ov-name">'+r.municipio+'</span><span class="ov-monto">'+fmt(r.Monto)+'</span></div>'
+    ).join('');
+
+    const e=data.event;
+    let x=e.clientX+16, y=e.clientY-10;
+    if(x+316>window.innerWidth) x=e.clientX-320;
+    if(y+400>window.innerHeight) y=window.innerHeight-410;
+    tip.style.left=x+'px'; tip.style.top=y+'px'; tip.style.display='block';
+  });
+
+  gd.on('plotly_unhover',function(){
+    tip.style.display='none';
+  });
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DESGLOSE POR FLUJO  (clic = agregar/quitar · tarjeta con tabla · multiselección)
+// ═════════════════════════════════════════════════════════════════════════════
+const SEL_ALPHA      = 0.85;   // opacidad de un link seleccionado
+const DIM_FACTOR     = 0.45;   // los no seleccionados se atenúan (× su opacidad base) mientras haya selección
+const MAX_ROWS_SHOWN = 500;    // tope de renglones (pares donante→receptor) renderizados; el buscador encuentra el resto
+
+// Pestañas del desglose: id → título y de dónde sale cada tabla
+const COL_EMI='#003153', COL_EST='#8B2C1A', COL_MUN='#B15E2E';   // mismos colores que la leyenda del Sankey
+// Cada pestaña es una tabla larga  Donante | Monto | Recepción | Monto  con la MISMA variable en ambos lados:
+//   donante = quién DONA · recepción = quién RECIBE                           (src:'ot', hoja "Donativos otorgados")
+// Municipio y Sector no tienen contraparte "donante" en los datos, así que ahí el donante es el estado
+// emisor y la recepción el municipio / sector donde se aplicó el donativo   (src:'dest', hoja "Destino de donativos").
+const TABS = [
+  {id:'rs',  label:'Razón social', src:'ot',   rowTitle:'Razón social que dona', colTitle:'Razón social que recibe', plural:'donantes',          colPlural:'receptores',  colColor:COL_EST},
+  {id:'act', label:'Actividad',    src:'ot',   rowTitle:'Actividad que dona',    colTitle:'Actividad que recibe',    plural:'actividades',       colPlural:'actividades', colColor:COL_EST},
+  {id:'emi', label:'Estado',       src:'ot',   rowTitle:'Estado que dona',       colTitle:'Estado que recibe',       plural:'estados',           colPlural:'estados',     colColor:COL_EST},
+  {id:'mun', label:'Municipio',    src:'dest', rowTitle:'Estado emisor',         colTitle:'Municipio receptor',      plural:'estados emisores',  colPlural:'municipios',  colColor:COL_MUN},
+  {id:'sec', label:'Sector',       src:'dest', rowTitle:'Estado emisor',         colTitle:'Sector beneficiado',      plural:'estados emisores',  colPlural:'sectores',    colColor:COL_EST},
+];
+const HAS_OT = Array.isArray(DET.ot) && DET.ot.length>0;
+
+const IDX = {
+  O:new Map(DET.O.map((v,i)=>[v,i])),
+  D:new Map(DET.D.map((v,i)=>[v,i])),
+  M:new Map(DET.M.map((v,i)=>[v,i])),
+};
+
+const normS = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const IDX_E = new Map((DET.E||[]).map((v,i)=>[normS(v),i]));   // estados de "Donativos otorgados"
+
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtFull(v){ return '$'+Math.round(v).toLocaleString('es-MX'); }
+
+// Colores de los links según la selección actual
+function linkColors(){
+  const any=SELECTED.size>0;
+  return LINK_FLOWS.map(f=>{
+    if(!any) return hexToRgba(f.base.hex, f.base.a);
+    return SELECTED.has(f.key) ? hexToRgba(f.base.hex, SEL_ALPHA) : hexToRgba(f.base.hex, f.base.a*DIM_FACTOR);
+  });
+}
+function paintLinks(){
+  Plotly.restyle('chart', {'link.color':[linkColors()]}, [0]);
+}
+
+// Tras reconstruir el Sankey (filtros, escala, límite): conserva lo seleccionado que siga existiendo.
+function reconcileSelection(){
+  const byKey=new Map(LINK_FLOWS.map(f=>[f.key,f]));
+  [...SELECTED.keys()].forEach(k=>{
+    if(byKey.has(k)) SELECTED.set(k, byKey.get(k)); else SELECTED.delete(k);
+  });
+}
+
+// Predicado "esta fila de detalle pertenece al flujo f"  (fila = [o, d, m, clave, monto, benef, n])
+function matcherFor(f){
+  if(f.type==='L1'){ const o=IDX.O.get(f.o), d=IDX.D.get(f.d); return r=>r[0]===o && r[1]===d; }
+  if(f.type==='L2'){ const d=IDX.D.get(f.d), m=IDX.M.get(f.m); return r=>r[1]===d && r[2]===m; }
+  if(f.type==='OV'){ const d=IDX.D.get(f.d), ms=new Set(f.munis.map(x=>IDX.M.get(x))); return r=>r[1]===d && ms.has(r[2]); }
+  return null;
+}
+
+// Predicado "esta fila de Donativos otorgados pertenece al flujo f"
+//   fila = [estado_dona, estado_recibe, rs_dona, rs_recibe, act_dona, act_recibe, monto, sin_destino]
+//   L1: donantes con sede en el estado emisor → destinatarios ubicados en el estado receptor
+//   L2/OV: donantes de cualquier estado → destinatarios ubicados en el estado receptor
+//          (la hoja no dice el municipio del destinatario, no se puede acotar más)
+//   UNK: donantes del estado emisor cuyo folio no declaró destino
+function otMatcherFor(f){
+  const g=v=>IDX_E.has(normS(v))?IDX_E.get(normS(v)):-2;
+  if(f.type==='L1'){ const o=g(f.o), d=g(f.d); return r=>!r[7] && r[0]===o && r[1]===d; }
+  if(f.type==='L2'||f.type==='OV'){ const d=g(f.d); return r=>!r[7] && r[1]===d; }
+  if(f.type==='UNK'){ const o=g(f.o); return r=>r[7]===1 && r[0]===o; }
+  return null;
+}
+
+// Agrega las tablas de detalle para el conjunto de flujos seleccionados.
+// "Donado" cuenta cada fila UNA vez aunque la tocaran dos flujos (p. ej. NL→Chiapas y Chiapas→Tuxtla
+// son dos tramos del mismo dinero).
+function summarize(flows, activeTab){
+  const known=flows.map((f,i)=>({f,i,test:matcherFor(f)})).filter(x=>x.test);
+  const unk=flows.map((f,i)=>({f,i,o:f.type==='UNK'?IDX.O.get(f.o):null})).filter(x=>x.o!==null);
+  const multiDest = new Set(known.map(x=>x.f.d)).size>1;
+  const munLab = k=>{ const m=DET.M[k%1e6]; return multiDest? m+' · '+DET.D[Math.floor(k/1e6)] : m; };
+  const UNK_LAB='Sin destino declarado';
+  const T=TABS.find(t=>t.id===activeTab);
+  const finish=acc=>[...acc.values()].filter(b=>b.tot>0||b.benef>0).sort((a,b)=>b.tot-a.tot);
+
+  const out={}; let overlap=false, colLab=null, otTotal=0;
+
+  // ── (a) Hoja "Destino de donativos": KPI de donantes y pestañas Municipio / Sector
+  const destDefs={
+    rs :{tbl:DET.rs,  key:r=>r[3], lab:k=>DET.R[k], ukey:u=>u[1]},
+    mun:{tbl:DET.mun, key:r=>r[0], lab:k=>DET.O[k], ukey:u=>u[0], ck:r=>r[1]*1e6+r[2], cl:k=>k<0?UNK_LAB:munLab(k)},
+    sec:{tbl:DET.sec, key:r=>r[0], lab:k=>DET.O[k], ukey:u=>u[0], ck:r=>r[3],          cl:k=>k<0?UNK_LAB:DET.S[k]},
+  };
+  for(const id of ['rs','mun','sec']){
+    if(id!=='rs' && id!==activeTab) continue;
+    const def=destDefs[id], useCols=id===activeTab && T.src==='dest';
+    const acc=new Map();
+    const bucket=k=>{ let b=acc.get(k); if(!b){ b={k,tot:0,benef:0,cols:new Map(),cb:new Map()}; acc.set(k,b);} return b; };
+    for(const r of def.tbl){
+      let hits=0; for(const x of known) if(x.test(r)) hits++;
+      if(hits){
+        const b=bucket(def.key(r)); b.tot+=r[4]; b.benef+=r[5];
+        if(useCols){ const ck=def.ck(r); b.cols.set(ck,(b.cols.get(ck)||0)+r[4]); b.cb.set(ck,(b.cb.get(ck)||0)+r[5]); }
+      }
+    }
+    for(const u of DET.unk){ for(const x of unk){ if(u[0]===x.o){
+      const b=bucket(def.ukey(u)); b.tot+=u[3]; if(useCols) b.cols.set(-1,(b.cols.get(-1)||0)+u[3]);
+    } } }
+    out[id]=finish(acc).map(b=>({...b,label:def.lab(b.k)}));
+    if(useCols) colLab=def.cl;
+  }
+  const nRsDest=out.rs.length;
+  if(T.src==='dest') delete out.rs;           // 'rs' de Destino solo sirve para el KPI
+
+  // ── (b) Hoja "Donativos otorgados": filas = quién dona · columnas = quién recibe (misma variable)
+  if(T.src==='ot' && HAS_OT){
+    const NOREC=DET.noDecl||'Destinatario no declarante';
+    const defs={
+      rs :{ro:r=>r[2], co:r=>r[3], rl:k=>DET.R2[k], cl:k=>DET.R2[k]},
+      act:{ro:r=>r[4], co:r=>r[5], rl:k=>DET.A2[k], cl:k=>DET.A2[k]},
+      emi:{ro:r=>r[0], co:r=>r[1], rl:k=>DET.E[k],  cl:k=>DET.E[k]},
+    };
+    const def=defs[activeTab];
+    const tests=flows.map(otMatcherFor).filter(Boolean);
+    const acc=new Map();
+    for(const r of DET.ot){
+      let hits=0; for(const t of tests) if(t(r)) hits++;
+      if(!hits) continue;
+      if(hits>1) overlap=true;
+      const k=def.ro(r); let b=acc.get(k); if(!b){ b={k,tot:0,benef:0,cols:new Map()}; acc.set(k,b); }
+      b.tot+=r[6]; otTotal+=r[6];
+      const ck=def.co(r); b.cols.set(ck,(b.cols.get(ck)||0)+r[6]);
+    }
+    out[activeTab]=finish(acc).map(b=>({...b,label:def.rl(b.k)}));
+    colLab=def.cl;
+  }
+
+  // KPIs (siempre desde "Destino de donativos", igual que el Sankey)
+  let total=0, benef=0, regs=0;
+  for(const r of DET.mun){ let h=0; for(const x of known) if(x.test(r)) h++; if(h){ total+=r[4]; benef+=r[5]; regs+=r[6]; if(h>1&&T.src==='dest') overlap=true; } }
+  let totalUnk=0; for(const u of DET.unk){ if(unk.some(x=>u[0]===x.o)) totalUnk+=u[3]; }
+  return {out, colLab, otTotal, total:total+totalUnk, totalKnown:total, totalUnk, benef, regs, nRs:nRsDest, overlap, hasUnk:unk.length>0, hasKnown:known.length>0};
+}
+
+// ── Selección en bloque ───────────────────────────────────────────────────────
+// Flujos de un nodo: los que LLEGAN a él; si no le llega ninguno (estado emisor), los que SALEN.
+//   estado emisor   → todos sus flujos hacia estados receptores (+ “destino desconocido”)
+//   estado receptor → todos los flujos que llegan desde los estados emisores
+//   municipio       → el flujo que llega desde su estado
+// No se mezclan entradas y salidas para no contar dos veces el mismo dinero.
+function flowsOfNode(nodeIdx){
+  const entran=[], salen=[];
+  LINK_FLOWS.forEach((f,i)=>{
+    if(LINK_ST.tgt[i]===nodeIdx) entran.push(f);
+    else if(LINK_ST.src[i]===nodeIdx) salen.push(f);
+  });
+  return entran.length ? entran : salen;
+}
+// Si todos ya estaban seleccionados, los quita; si no, agrega los que falten.
+function toggleGroup(group){
+  if(!group.length) return;
+  const todos=group.every(f=>SELECTED.has(f.key));
+  group.forEach(f=>{ if(todos) SELECTED.delete(f.key); else SELECTED.set(f.key,f); });
+  paintLinks();
+  renderCard();
+}
+// Botón: todos los flujos visibles del primer tramo (emisor → receptor y → destino desconocido).
+// El tramo receptor → municipio es el desglose del mismo dinero, así que no se agrega para no duplicar.
+function selectAllVisible(){
+  const b=document.getElementById('btn-selall').getBoundingClientRect();
+  LAST_PTR={x:b.left, y:b.bottom+30};
+  toggleGroup(LINK_FLOWS.filter(f=>f.type==='L1'||f.type==='UNK'));
+}
+
+// ── Clic sobre un link o un nodo ──────────────────────────────────────────────
+function attachFlowClick(){
+  const gd=document.getElementById('chart');
+  gd.removeAllListeners('plotly_click');
+  gd.on('plotly_click',function(ev){
+    const pt=ev.points&&ev.points[0];
+    if(!pt) return;
+    if(isNodePoint(pt)){ toggleGroup(flowsOfNode(pt.pointNumber)); return; }
+    const f=LINK_FLOWS[pt.pointNumber];
+    if(!f) return;
+    if(SELECTED.has(f.key)) SELECTED.delete(f.key); else SELECTED.set(f.key,f);
+    paintLinks();
+    renderCard();
+  });
+}
+
+// ── Texto aclaratorio: quién dona y qué significa el monto ───────────────────
+// Los datos vienen de "Destino de donativos": cada razón social es una donataria que REPORTA haber
+// destinado donativos; su estado (emisor) sale de Carátula; el estado/municipio receptor es donde se aplicó.
+function tabDesc(tab, flows){
+  const T=TABS.find(t=>t.id===tab);
+  const types=new Set(flows.map(f=>f.type));
+  const one=flows.length===1?flows[0]:null;
+  const b=t=>'<b>'+esc(t)+'</b>';
+  const dona='<b style="color:'+COL_EMI+'">Donante</b>', recibe='<b style="color:'+T.colColor+'">Recepción</b>';
+  if(T.src==='ot'){
+    const what={rs:'cada razón social', act:'cada actividad', emi:'cada estado'}[tab];
+    let scope;
+    if(one && one.type==='L1') scope='donantes con sede en '+b(one.o)+' → destinatarios ubicados en '+b(one.d);
+    else if(one && (one.type==='L2'||one.type==='OV')) scope='donantes de cualquier estado → destinatarios ubicados en '+b(one.d)+' (la hoja no indica el municipio del destinatario)';
+    else if(one && one.type==='UNK') scope='donantes con sede en '+b(one.o)+' que no declararon destino';
+    else scope='donantes → destinatarios de los flujos seleccionados';
+    return 'Cada renglón es un donativo '+dona+' → '+recibe+' con su monto: '+what+' como donante y como destinatario ('+scope+'). '
+      +'<br><b>Fuente: Donativos otorgados</b> (donante → destinatario). Es otra hoja que “Destino de donativos”, por eso su total no coincide con el monto del flujo.';
+  }
+  const colNote={mun:'municipio donde se aplicó el donativo', sec:'a quién se dirigió el donativo (texto libre del informe)'}[tab];
+  return 'Cada renglón es un par <b style="color:'+COL_EMI+'">estado emisor</b> (sede de la donataria que dona) → <b style="color:'+T.colColor+'">'+esc(T.colTitle.toLowerCase())+'</b> ('+colNote+'). '
+    +'Aquí no hay “quien recibe” con la misma variable: la hoja solo dice dónde se aplicó el donativo. <br><b>Fuente: Destino de donativos</b> (cuadra con el monto del flujo).';
+}
+
+// ── Tarjeta ───────────────────────────────────────────────────────────────────
+const card=document.getElementById('flow-card');
+// En los eventos de clic de Plotly Sankey, ev.event NO es un MouseEvent (no trae clientX/Y),
+// así que se rastrea la posición del puntero aparte.
+let LAST_PTR={x:20,y:20};
+document.addEventListener('mousemove',e=>{ LAST_PTR={x:e.clientX,y:e.clientY}; },true);
+
+function placeCard(){
+  const w=Math.min(640, window.innerWidth-16);
+  let x=LAST_PTR.x+18, y=LAST_PTR.y-24;
+  if(x+w>window.innerWidth-8) x=Math.max(8,LAST_PTR.x-w-18);
+  card.style.left=x+'px';
+  card.style.top=Math.max(8,y)+'px';
+  clampCard();
+}
+// Mantiene la tarjeta completa dentro de la pantalla (también cuando crece al agregar flujos)
+function clampCard(){
+  requestAnimationFrame(()=>{
+    if(!card.classList.contains('open')) return;
+    const h=card.offsetHeight, w=card.offsetWidth;
+    let top=parseFloat(card.style.top)||8, left=parseFloat(card.style.left)||8;
+    if(top+h>window.innerHeight-8) top=Math.max(8,window.innerHeight-h-8);
+    if(left+w>window.innerWidth-8) left=Math.max(8,window.innerWidth-w-8);
+    card.style.top=top+'px'; card.style.left=left+'px';
+  });
+}
+
+// Título de una selección múltiple: si todos los flujos comparten estado emisor o receptor, lo dice.
+function tituloGrupo(flows){
+  const n=flows.length;
+  const os=new Set(flows.map(f=>f.o)), ds=new Set(flows.map(f=>f.d));
+  if(os.size===1 && !os.has(undefined)) return 'Desde '+esc([...os][0])+' · '+n+' flujos';
+  if(ds.size===1 && !ds.has(undefined)) return 'Hacia '+esc([...ds][0])+' · '+n+' flujos';
+  return n+' flujos seleccionados';
+}
+
+function renderCard(){
+  const flows=[...SELECTED.values()];
+  if(!flows.length){ card.classList.remove('open'); return; }
+  const wasOpen=card.classList.contains('open');
+  const S=summarize(flows, ACTIVE_TAB);
+  const n=flows.length;
+
+  document.getElementById('fc-title').innerHTML = n===1
+    ? esc(flows[0].label)+'<small>'+({L1:'Donantes con sede en el estado emisor → donativos aplicados en el estado receptor',L2:'Donativos aplicados en el estado receptor → municipio',OV:'Donativos aplicados en el estado receptor → municipios agrupados',UNK:'Donantes del estado emisor sin destino declarado'})[flows[0].type]+'</small>'
+    : tituloGrupo(flows)+'<small>Total combinado sin duplicar tramos que se traslapan</small>';
+
+  document.getElementById('fc-chips').innerHTML = flows.map((f,i)=>
+    '<span class="fc-chip"><span class="n">'+(i+1)+'</span><span class="t" title="'+esc(f.label)+'">'+esc(f.label)+'</span>'
+    +'<span class="v">'+fmt(f.monto)+'</span><button data-k="'+esc(f.key)+'" title="Quitar">✕</button></span>'
+  ).join('');
+
+  document.getElementById('fc-kpis').innerHTML = [
+    [S.hasKnown?'Monto donado':'Monto', fmt(S.total)],
+    ['Donantes', fmtN(S.nRs)],
+    ['Beneficiarios', S.hasKnown?fmtN(S.benef):'—'],
+    ['Registros', S.hasKnown?fmtN(S.regs):'—'],
+  ].map(([l,v])=>'<div class="fc-kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>').join('');
+
+  document.getElementById('fc-tabs').innerHTML = TABS.map(t=>
+    '<button class="fc-tab'+(t.id===ACTIVE_TAB?' active':'')+'" data-t="'+t.id+'" title="'+esc(t.rowTitle+' → '+t.colTitle)+'">'+t.label+'</button>'
+  ).join('');
+
+  document.getElementById('fc-desc').innerHTML = tabDesc(ACTIVE_TAB, flows);
+
+  LAST={S, flows};
+  renderTable();
+
+  card.classList.add('open');
+  if(!wasOpen) placeCard(); else clampCard();
+}
+
+
+// ── Tabla larga (un renglón por par donante → receptor) + buscador ──────────
+let LAST=null;   // último resumen calculado; el buscador solo re-filtra, no recalcula
+function hl(text, q){
+  const t=String(text);
+  if(!q) return esc(t);
+  const n=normS(t), i=n.indexOf(q);         // normS conserva la longitud de las letras base → índices válidos
+  if(i<0) return esc(t);
+  return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length));
+}
+
+function renderTable(){
+  if(!LAST) return;
+  const {S, flows}=LAST;
+  const T=TABS.find(t=>t.id===ACTIVE_TAB);
+  const isOt=T.src==='ot';
+  const rows=S.out[ACTIVE_TAB]||[];
+  const tbl=document.getElementById('fc-table');
+  const q=normS(document.getElementById('fc-q').value||'');
+  const side=document.getElementById('fc-qside').value;
+  const cnt=document.getElementById('fc-qcnt');
+  const showBenef=!isOt;
+  let nAll=0, nMatch=0, cut=0;
+
+  if(isOt && !HAS_OT){
+    tbl.className='fc-table'; cnt.textContent='';
+    tbl.innerHTML='<tbody><tr><td class="fc-empty" style="text-align:center;white-space:normal">Falta la hoja “Donativos otorgados” al generar este archivo. Vuelve a correr <code>generar_sankey.py</code> con esa hoja disponible.</td></tr></tbody>';
+  } else if(!rows.length){
+    tbl.className='fc-table'; cnt.textContent='';
+    tbl.innerHTML='<tbody><tr><td class="fc-empty" style="text-align:center;white-space:normal">'
+      +(isOt?'Este flujo no tiene donativos entre organizaciones en “Donativos otorgados” (la hoja solo incluye destinatarios identificados).':'Sin datos para esta selección.')
+      +'</td></tr></tbody>';
+  } else {
+    tbl.className='fc-table long';
+    // Aplana: un renglón por par. Orden = donante de mayor total primero; dentro, receptor de mayor monto
+    // ("Sin destino declarado" al final). Así los renglones de un mismo donante quedan juntos.
+    const pairs=[];
+    for(const b of rows){
+      [...b.cols.entries()].filter(e=>e[1]>0)
+        .sort((x,y)=>(x[0]<0)-(y[0]<0)||y[1]-x[1])
+        .forEach(([k,v])=>pairs.push({don:b.label, rec:S.colLab(k), v, benef:(b.cb&&b.cb.get(k))||0, unk:k<0}));
+    }
+    nAll=pairs.length;
+    const match=!q?pairs:pairs.filter(p=>
+      (side!=='rec' && normS(p.don).includes(q)) || (side!=='don' && normS(p.rec).includes(q)));
+    nMatch=match.length;
+    const shown=match.slice(0,MAX_ROWS_SHOWN); cut=nMatch-shown.length;
+    const qd=side!=='rec'?q:'', qr=side!=='don'?q:'';
+
+    const head='<thead><tr>'
+      +'<th class="l" style="box-shadow:inset 0 3px 0 '+COL_EMI+'">'+(isOt?'Donante':'Emisor')+' · '+esc(T.rowTitle)+'</th>'
+      +'<th style="box-shadow:inset 0 3px 0 '+COL_EMI+'">Monto</th>'
+      +'<th class="l" style="box-shadow:inset 0 3px 0 '+T.colColor+'">Recepción · '+esc(T.colTitle)+'</th>'
+      +'<th style="box-shadow:inset 0 3px 0 '+T.colColor+'">Monto</th>'
+      +(showBenef?'<th style="box-shadow:inset 0 3px 0 '+T.colColor+'">Benef.</th>':'')
+      +'</tr></thead>';
+    const body='<tbody>'+(shown.length? shown.map(p=>
+        '<tr><td class="dn" title="'+esc(p.don)+'">'+hl(p.don,qd)+'</td>'
+        +'<td class="dm">'+fmtFull(p.v)+'</td>'
+        +'<td class="rn'+(p.unk?' unk':'')+'" title="'+esc(p.rec)+'">'+hl(p.rec,qr)+'</td>'
+        +'<td>'+fmtFull(p.v)+'</td>'
+        +(showBenef?'<td class="pct">'+(p.benef?fmtN(p.benef):'—')+'</td>':'')+'</tr>'
+      ).join('')
+      : '<tr><td colspan="'+(showBenef?5:4)+'" class="fc-empty" style="text-align:center">Ningún renglón coincide con “'+esc(document.getElementById('fc-q').value)+'”.</td></tr>'
+    )+'</tbody>';
+    const mTot=match.reduce((s,p)=>s+p.v,0);
+    const mBen=match.reduce((s,p)=>s+p.benef,0);
+    const nDon=new Set(match.map(p=>p.don)).size, nRec=new Set(match.map(p=>p.rec)).size;
+    const foot='<tfoot><tr>'
+      +'<td>'+nDon.toLocaleString('es-MX')+' '+T.plural+(q?' (filtrado)':'')+'</td>'
+      +'<td>'+fmtFull(mTot)+'</td>'
+      +'<td style="text-align:left;font-family:Montserrat,sans-serif">'+nRec.toLocaleString('es-MX')+' '+T.colPlural+'</td>'
+      +'<td>'+fmtFull(mTot)+'</td>'
+      +(showBenef?'<td>'+fmtN(mBen)+'</td>':'')
+      +'</tr></tfoot>';
+    tbl.innerHTML=head+body+foot;
+    cnt.textContent = q ? fmtN(nMatch)+' de '+fmtN(nAll) : fmtN(nAll)+' renglones';
+  }
+
+  const notes=[];
+  if(cut) notes.push('Se muestran los primeros '+MAX_ROWS_SHOWN+' renglones de '+nMatch.toLocaleString('es-MX')+'; usa el buscador para encontrar el resto. Los totales del pie sí incluyen todos.');
+  if(isOt && HAS_OT) notes.push('Total de “Donativos otorgados” para este flujo: '+fmtFull(S.otTotal)+' · monto del flujo: '+fmtFull(S.total)+' (Destino de donativos). Los destinatarios que no presentan informe no tienen estado ni actividad: aparecen como “Destinatario no declarante” y quedan fuera de los flujos que filtran por estado receptor.');
+  if(S.overlap) notes.push('Los flujos seleccionados se traslapan (el mismo donativo aparece en dos tramos): el total no los duplica.');
+  if(!isOt && S.hasUnk) notes.push('Los montos “sin destino declarado” no tienen municipio ni sector: aparecen como ese receptor.');
+  if(ACTIVE_TAB==='sec') notes.push('Sector beneficiado es texto libre: se muestran los más frecuentes y el resto se agrupa en “Otros sectores”.');
+  notes.push('Clic en otro flujo para agregarlo; clic de nuevo para quitarlo. Clic en un nodo (estado o municipio) para agregar o quitar todos sus flujos. Arrastra el título para mover esta tarjeta.');
+  document.getElementById('fc-foot').innerHTML=notes.map(esc).join('<br>');
+  clampCard();
+}
+
+// Buscador: re-filtra sin recalcular (con un pequeño retraso mientras se escribe)
+(function(){
+  const q=document.getElementById('fc-q'); let t=null;
+  q.addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(renderTable,120); });
+  document.getElementById('fc-qside').addEventListener('change',renderTable);
+  document.getElementById('fc-qclear').addEventListener('click',()=>{ q.value=''; renderTable(); q.focus(); });
+  q.addEventListener('keydown',e=>{ if(e.key==='Escape' && q.value){ e.stopPropagation(); q.value=''; renderTable(); } });
+})();
+
+// Delegación de eventos de la tarjeta
+card.addEventListener('click',e=>{
+  const t=e.target.closest('[data-t]'); if(t){ ACTIVE_TAB=t.dataset.t; renderCard(); return; }
+  const k=e.target.closest('.fc-chip button'); if(k){ SELECTED.delete(k.dataset.k); paintLinks(); renderCard(); return; }
+});
+document.getElementById('fc-close').addEventListener('click',()=>{ SELECTED.clear(); document.getElementById('fc-q').value=''; paintLinks(); renderCard(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && SELECTED.size){ SELECTED.clear(); paintLinks(); renderCard(); } });
+
+// Arrastrar la tarjeta desde el encabezado
+(function(){
+  const head=document.getElementById('fc-head'); let drag=null;
+  head.addEventListener('mousedown',e=>{
+    if(e.target.closest('button')) return;
+    const r=card.getBoundingClientRect(); drag={dx:e.clientX-r.left, dy:e.clientY-r.top}; e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!drag) return;
+    const x=Math.min(Math.max(0,e.clientX-drag.dx), window.innerWidth-card.offsetWidth);
+    const y=Math.min(Math.max(0,e.clientY-drag.dy), window.innerHeight-60);
+    card.style.left=x+'px'; card.style.top=y+'px';
+  });
+  document.addEventListener('mouseup',()=>{ drag=null; });
+})();
+
+// ── Scale toggle ──────────────────────────────────────────────────────────────
+function setScale(mode){
+  SCALE_MODE=mode;
+  document.getElementById('btn-lin').classList.toggle('active', mode==='linear');
+  document.getElementById('btn-log').classList.toggle('active', mode==='log');
+  document.getElementById('scale-note').textContent =
+    mode==='log' ? 'grosor ∝ log₁₀(monto)' : 'grosor ∝ monto real';
+  applyFilters();
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+function onSlider(v){ MUN_LIMIT=parseInt(v); document.getElementById('lim-val').textContent=v; applyFilters(); }
+function onPxSlider(v){ PX_PER_NODE=parseInt(v); document.getElementById('px-val').textContent=v; applyFilters(); }
+
+function applyFilters(){
+  buildSankey(
+    document.getElementById('sel-origen').value,
+    document.getElementById('sel-destino').value,
+    document.getElementById('sel-municipio').value
+  );
+}
+function resetFilters(){
+  document.getElementById('sel-origen').value='';
+  document.getElementById('sel-destino').value='';
+  document.getElementById('sel-municipio').value='';
+  buildSankey('','','');
+}
+
+buildSankey('','','');
+</script>
+</body>
+</html>

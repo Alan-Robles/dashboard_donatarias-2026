@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS / editores
+.DS_Store
+.vscode/
+.idea/
+
+# Respaldos y temporales
+*.bak
+~$*.xlsx
+
+# Excel originales por año (pesados; el dashboard usa los unidos de data/)
+data/raw/
