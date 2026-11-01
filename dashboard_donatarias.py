@@ -286,6 +286,12 @@ section[data-testid="stSidebar"] [data-testid="stPopover"] button span {
     color: #003153 !important;
 }
 
+/* Íconos de Streamlit: la regla "stSidebar *" les quitaba su fuente y salía el texto (expand_more...) */
+section[data-testid="stSidebar"] [data-testid="stIconMaterial"],
+section[data-testid="stSidebar"] [data-testid="stPopover"] button span[data-testid="stIconMaterial"] {
+    font-family: 'Material Symbols Rounded' !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
