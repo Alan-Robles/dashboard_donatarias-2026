@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -982,7 +983,7 @@ with tab3:
     ruta_sankey = BASE / "sankey.html"
     if ruta_sankey.exists():
         html_sankey = cargar_html(str(ruta_sankey), ruta_sankey.stat().st_mtime)
-        st.iframe(html_sankey, height=800)
+        components.html(html_sankey, height=800, scrolling=True)
     else:
         st.warning("No se encontró sankey.html. Genéralo con: python generar_sankey.py --anios 2025")
 

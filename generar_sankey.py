@@ -31,6 +31,9 @@ Pestañas Razón social / Actividad / Estado (quién DONA × quién RECIBE)
     destinatario no presenta informe → "Destinatario no declarante".
     Esta hoja NO es la de "Destino de donativos", por eso sus montos no cuadran con los del Sankey.
     Si la hoja no existe, esas pestañas avisan que falta y el resto funciona igual.
+
+cd /Users/alanrobles/dashboard_donatarias-2026
+/usr/bin/python3 generar_sankey.py --anios 2020 2021 2022 2023 2024 2025 2026
 """
 import argparse
 import json
