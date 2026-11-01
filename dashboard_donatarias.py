@@ -678,7 +678,7 @@ with tab1:
         )
         fig1.update_traces(texttemplate="<b>%{label}</b><br>$%{value:,.0f}", textfont_size=14)
         fig1 = estilizar_figura(fig1, altura=390)
-        st.plotly_chart(fig1, width="stretch")
+        st.plotly_chart(fig1)
 
     # --- Gráfico 4: Origen de donativo por identidad fiscal ---
     with fila1_col2:
@@ -727,7 +727,7 @@ with tab1:
             simbolo="━",
         )
 
-        st.plotly_chart(fig4, width="stretch")
+        st.plotly_chart(fig4)
 
     # --- Gráfico 10: Sustentabilidad anual de flujo presupuestal (bubble chart) ---
     with fila2_col1:
@@ -779,7 +779,7 @@ with tab1:
         )
 
 
-        st.plotly_chart(fig10, width="stretch")
+        st.plotly_chart(fig10)
     # --- Gráfico 11: Identidad organizacional ---
     with fila2_col2:
         df_g11 = df_anio[df_anio["Identidad organizacional"].isin(identidad_sel)].copy()
@@ -844,7 +844,7 @@ with tab1:
             [(t.name, colores_identidad.get(t.name, "#C9C9C9")) for t in fig11.data],
         )
 
-        st.plotly_chart(fig11, width="stretch")
+        st.plotly_chart(fig11)
 # ---------------------------------------------------------
 # TAB 2 — Indicadores 5, 6, 7, 8, 9 (grid 2x2 + fila completa)
 # ---------------------------------------------------------
@@ -879,7 +879,6 @@ with tab2:
 
         st.plotly_chart(
             fig5,
-            width="stretch",
             config={"displayModeBar": False}
         )
 
@@ -906,7 +905,7 @@ with tab2:
 
         fig6 = estilizar_figura(fig6, altura=390)
 
-        st.plotly_chart(fig6, width="stretch")
+        st.plotly_chart(fig6)
 
     # --- Gráfico 7: Dependencia de voluntariado ---
     with fila2_col1:
@@ -931,7 +930,7 @@ with tab2:
         fig7.update_yaxes(title_text="Número de asociaciones")
         fig7 = estilizar_figura(fig7, altura=390)
 
-        st.plotly_chart(fig7, width="stretch")
+        st.plotly_chart(fig7)
 
     # --- Gráfico 8: Costo del órgano de gobierno ---
     with fila2_col2:
@@ -957,7 +956,7 @@ with tab2:
         fig8.update_xaxes(title_text="%")
         fig8 = estilizar_figura(fig8, altura=390)
 
-        st.plotly_chart(fig8, width="stretch")
+        st.plotly_chart(fig8)
 
     # --- Gráfico 9: Costo por beneficiario (fila completa, ancho total) ---
     fig9 = px.histogram(
@@ -972,7 +971,7 @@ with tab2:
     fig9.update_layout(showlegend=False)
     fig9 = estilizar_figura(fig9, altura=390)
 
-    st.plotly_chart(fig9, width="stretch")
+    st.plotly_chart(fig9)
 
 with tab3:
     @st.cache_data
